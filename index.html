@@ -1,734 +1,392 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>One app for all needs. Single account for all your payments. | Jeton</title>
+<title>الشراكات والأعمال | أي آم سبيشل للضيافة الترفيهية</title>
+<meta name="description" content="شراكات الأعمال مع أي آم سبيشل - حلول ضيافة الأطفال للمجمعات التجارية والشركات والفعاليات في الرياض.">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --blue: #5BB8FF;
+    --blue-dark: #2E8ED6;
+    --logo-red: #FF1A33; 
+    --logo-yellow: #FFCC00; 
+    --green: #5DD87A;
+    --green-dark: #35B855;
+    --text: #2D3748;
+    --muted: #718096;
+    --bg: #FFFFFF; /* خلفية بيضاء نقية بدون ألوان */
+  }
 
-:root {
-–orange: #F26722;
-–orange-light: #FF8040;
-–black: #0A0A0A;
-–dark: #111111;
-–dark2: #1A1A1A;
-–gray: #6B6B6B;
-–gray-light: #9A9A9A;
-–border: rgba(255,255,255,0.08);
-–white: #FFFFFF;
-–card-bg: #161616;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { 
+      background: var(--bg);
+      color: var(--text); 
+      font-family: 'Baloo Bhaijaan 2', sans-serif; 
+      overflow-x: hidden; 
+  }
 
-html { scroll-behavior: smooth; }
+  /* الأشكال العائمة لتعطي تأثير الزجاج عند التمرير فوقها */
+  .bg-blob-1 { position: fixed; top: -10%; right: -5%; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(91,184,255,0.08) 0%, rgba(255,255,255,0) 70%); z-index: -1; pointer-events: none; }
+  .bg-blob-2 { position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(255,26,51,0.05) 0%, rgba(255,255,255,0) 70%); z-index: -1; pointer-events: none;}
+  .bg-blob-3 { position: fixed; top: 40%; left: 40%; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(255,204,0,0.08) 0%, rgba(255,255,255,0) 70%); z-index: -1; pointer-events: none;}
 
-body {
-font-family: ‘DM Sans’, sans-serif;
-background: var(–black);
-color: var(–white);
-overflow-x: hidden;
--webkit-font-smoothing: antialiased;
-}
+  /* تأثير الزجاج (Glassmorphism) */
+  .glass-card, nav, .form-input, .form-select, footer {
+      background: rgba(255, 255, 255, 0.6) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05) !important;
+  }
 
-/* ── NAV ── */
-nav {
-position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-display: flex; align-items: center; justify-content: space-between;
-padding: 0 48px;
-height: 72px;
-background: rgba(10,10,10,0.85);
-backdrop-filter: blur(20px);
-border-bottom: 1px solid var(–border);
-transition: background 0.3s;
-}
+  .cl-red { color: var(--logo-red); }
+  .cl-yellow { color: var(--logo-yellow); }
 
-.nav-logo {
-font-family: ‘Syne’, sans-serif;
-font-size: 22px; font-weight: 800;
-color: var(–white); letter-spacing: -0.5px;
-text-decoration: none; display: flex; align-items: center; gap: 2px;
-}
-.nav-logo .dot { color: var(–orange); }
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 48px;
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+  }
 
-.nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
-.nav-links a { font-size: 14px; font-weight: 500; color: var(–gray-light); text-decoration: none; transition: color 0.2s; }
-.nav-links a:hover { color: var(–white); }
+  .nav-logo {
+    font-size: 24px; font-weight: 900;
+    text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+  .nav-logo img { width: 40px; height: 40px; object-fit: contain; }
 
-.nav-actions { display: flex; align-items: center; gap: 12px; }
+  .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+  .nav-links a { font-size: 16px; font-weight: 700; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--blue-dark); }
 
-.btn-ghost {
-font-family: ‘DM Sans’, sans-serif; font-size: 14px; font-weight: 500;
-color: var(–white); background: transparent; border: 1px solid var(–border);
-padding: 9px 20px; border-radius: 100px; cursor: pointer; text-decoration: none;
-transition: border-color 0.2s, background 0.2s;
-}
-.btn-ghost:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+  .nav-actions .btn-primary {
+    font-size: 15px; font-weight: 700; color: #fff; background: var(--blue-dark); border: none;
+    padding: 10px 24px; border-radius: 100px; cursor: pointer; text-decoration: none;
+    box-shadow: 0 4px 15px rgba(46, 142, 214, 0.3); transition: transform 0.2s;
+  }
+  .nav-actions .btn-primary:hover { transform: translateY(-2px); }
 
-.btn-primary {
-font-family: ‘DM Sans’, sans-serif; font-size: 14px; font-weight: 600;
-color: var(–white); background: var(–orange); border: none;
-padding: 10px 22px; border-radius: 100px; cursor: pointer; text-decoration: none;
-transition: background 0.2s, transform 0.15s;
-}
-.btn-primary:hover { background: var(–orange-light); transform: translateY(-1px); }
+  /* ── HERO ── */
+  .hero {
+    min-height: 90vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 140px 24px 80px; position: relative;
+  }
 
-/* ── HERO ── */
-.hero {
-min-height: 100vh; display: flex; flex-direction: column;
-align-items: center; justify-content: center;
-text-align: center; padding: 120px 24px 80px;
-position: relative; overflow: hidden;
-}
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(46,142,214,0.1); border: 1px solid rgba(46,142,214,0.2);
+    border-radius: 100px; padding: 6px 16px;
+    font-size: 14px; font-weight: 800; color: var(--blue-dark); margin-bottom: 24px;
+  }
 
-.hero-bg {
-position: absolute; inset: 0;
-background:
-radial-gradient(ellipse 80% 60% at 50% -10%, rgba(242,103,34,0.18) 0%, transparent 70%),
-radial-gradient(ellipse 50% 40% at 80% 80%, rgba(242,103,34,0.06) 0%, transparent 60%);
-}
+  h1 { font-size: clamp(40px, 6vw, 75px); font-weight: 900; line-height: 1.2; color: var(--text); max-width: 900px; margin-bottom: 20px;}
+  h1 span { color: var(--logo-red); }
+  
+  .hero-sub { font-size: 18px; font-weight: 600; color: var(--muted); max-width: 650px; line-height: 1.6; margin-bottom: 40px;}
 
-.hero-grid {
-position: absolute; inset: 0;
-background-image:
-linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-background-size: 60px 60px;
-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
-}
+  .hero-actions { display: flex; gap: 16px; }
+  .btn-large {
+    font-size: 18px; font-weight: 800; color: var(--text); 
+    background: var(--logo-yellow); padding: 16px 40px; border-radius: 100px; 
+    text-decoration: none; box-shadow: 0 8px 25px rgba(255,204,0,0.3); transition: transform 0.2s;
+  }
+  .btn-large:hover { transform: translateY(-3px); }
+  .btn-ghost {
+    font-size: 18px; font-weight: 800; color: var(--text);
+    padding: 16px 40px; border-radius: 100px; text-decoration: none;
+    border: 2px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5); backdrop-filter: blur(10px);
+    transition: transform 0.2s;
+  }
+  .btn-ghost:hover { transform: translateY(-3px); border-color: var(--blue); }
 
-.hero-tag {
-display: inline-flex; align-items: center; gap: 8px;
-background: rgba(242,103,34,0.12); border: 1px solid rgba(242,103,34,0.25);
-border-radius: 100px; padding: 6px 16px;
-font-size: 12px; font-weight: 500; letter-spacing: 0.08em;
-color: var(–orange); text-transform: uppercase; margin-bottom: 32px;
-position: relative; animation: fadeUp 0.8s ease both;
-}
-.hero-tag .pulse { width: 6px; height: 6px; background: var(–orange); border-radius: 50%; animation: pulseAnim 1.8s ease infinite; }
+  /* ── MARQUEE ── */
+  .marquee-wrap { overflow: hidden; border-top: 1px solid rgba(0,0,0,0.05); border-bottom: 1px solid rgba(0,0,0,0.05); padding: 14px 0; background: rgba(255,255,255,0.4); backdrop-filter: blur(10px); direction: ltr; }
+  .marquee-track { display: flex; animation: marqueeScroll 30s linear infinite; white-space: nowrap; width: max-content; }
+  .marquee-item { font-size: 16px; font-weight: 800; color: var(--blue-dark); padding: 0 30px; display: flex; align-items: center; gap: 12px; direction: rtl; }
+  @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
-@keyframes pulseAnim { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+  /* ── FEATURES ── */
+  .section-pad { padding: 100px 48px; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  h2 { font-size: clamp(32px, 5vw, 48px); font-weight: 900; color: var(--text); }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  
+  .feature-card { border-radius: 30px; padding: 40px 30px; text-align: center; transition: transform 0.3s; }
+  .feature-card:hover { transform: translateY(-8px); }
+  .f-icon { font-size: 50px; margin-bottom: 20px; display: inline-block; animation: float 3s infinite ease-in-out; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .feature-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 12px; color: var(--text); }
+  .feature-card p { font-size: 16px; color: var(--muted); line-height: 1.6; font-weight: 600; }
 
-h1 {
-font-family: ‘Syne’, sans-serif;
-font-size: clamp(52px, 8vw, 100px); font-weight: 800;
-line-height: 1.0; letter-spacing: -0.03em; max-width: 900px;
-position: relative; animation: fadeUp 0.8s 0.1s ease both;
-}
-h1 .accent { color: var(–orange); }
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .stat-box { border-radius: 24px; padding: 30px; text-align: center; }
+  .stat-num { font-size: 48px; font-weight: 900; color: var(--blue-dark); line-height: 1; }
+  .stat-label { font-size: 16px; font-weight: 800; color: var(--text); margin-top: 10px; }
 
-.hero-sub {
-font-size: 20px; font-weight: 300; color: var(–gray-light);
-margin-top: 20px; letter-spacing: 0.01em;
-position: relative; animation: fadeUp 0.8s 0.2s ease both;
-}
+  /* ── PACKAGES ── */
+  .packages-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .package-card { border-radius: 30px; padding: 40px; position: relative; transition: transform 0.3s; }
+  .package-card:hover { transform: translateY(-8px); border-color: var(--logo-red) !important; }
+  .pkg-icon { font-size: 40px; margin-bottom: 15px; }
+  .pkg-title { font-size: 24px; font-weight: 900; margin-bottom: 10px; }
+  .pkg-desc { font-size: 15px; color: var(--muted); font-weight: 600; line-height: 1.6; margin-bottom: 20px; height: 50px;}
+  .pkg-list { list-style: none; margin-bottom: 30px; }
+  .pkg-list li { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .pkg-list li::before { content: '✓'; color: var(--green-dark); font-weight: bold; }
+  
+  /* ── FORM ── */
+  .request-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 1100px; margin: 0 auto; }
+  .form-widget { border-radius: 30px; padding: 40px; }
+  .form-group { margin-bottom: 20px; }
+  .form-group label { display: block; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .form-input, .form-select { width: 100%; padding: 14px 20px; border-radius: 15px; font-family: 'Baloo Bhaijaan 2', sans-serif; font-size: 16px; font-weight: 600; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .form-input:focus, .form-select:focus { border-color: var(--blue-dark) !important; }
+  .form-submit { width: 100%; font-family: 'Baloo Bhaijaan 2', sans-serif; font-size: 18px; font-weight: 800; color: #fff; background: var(--logo-red); border: none; padding: 16px; border-radius: 100px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 8px 20px rgba(255,26,51,0.2); }
+  .form-submit:hover { transform: translateY(-2px); }
 
-.hero-actions {
-display: flex; align-items: center; gap: 14px; margin-top: 44px;
-position: relative; animation: fadeUp 0.8s 0.3s ease both;
-}
+  /* ── FOOTER ── */
+  footer { padding: 60px 48px 30px; border-top: 1px solid rgba(0,0,0,0.05); margin-top: 50px;}
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+  .footer-col h4 { font-size: 18px; font-weight: 900; margin-bottom: 20px; color: var(--text); }
+  .footer-col a { display: block; color: var(--muted); text-decoration: none; font-size: 16px; font-weight: 600; margin-bottom: 12px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--blue-dark); }
+  .footer-bottom { border-top: 1px solid rgba(0,0,0,0.05); padding-top: 24px; text-align: center; font-size: 14px; font-weight: 600; color: var(--muted); }
 
-.btn-large {
-font-family: ‘DM Sans’, sans-serif; font-size: 16px; font-weight: 600;
-color: var(–white); background: var(–orange); border: none;
-padding: 16px 36px; border-radius: 100px; cursor: pointer; text-decoration: none;
-transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-box-shadow: 0 8px 40px rgba(242,103,34,0.35);
-}
-.btn-large:hover { background: var(–orange-light); transform: translateY(-2px); box-shadow: 0 12px 50px rgba(242,103,34,0.45); }
-
-.app-badges {
-display: flex; align-items: center; gap: 12px; margin-top: 52px;
-position: relative; animation: fadeUp 0.8s 0.4s ease both;
-}
-
-.app-badge {
-display: flex; align-items: center; gap: 10px;
-background: rgba(255,255,255,0.06); border: 1px solid var(–border);
-border-radius: 12px; padding: 10px 18px; cursor: pointer;
-transition: background 0.2s, border-color 0.2s, transform 0.15s;
-text-decoration: none; color: var(–white);
-}
-.app-badge:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
-.app-badge svg { width: 20px; height: 20px; fill: var(–white); }
-.app-badge-text .small { font-size: 10px; color: var(–gray); letter-spacing: 0.05em; }
-.app-badge-text .large { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
-
-/* ── MOCKUP ── */
-.hero-mockups {
-position: relative; margin-top: 80px; width: 100%; max-width: 900px; height: 380px;
-animation: fadeUp 0.8s 0.5s ease both;
-}
-
-.phone-card {
-position: absolute; border-radius: 28px; overflow: hidden;
-box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.07);
-}
-
-.phone-main { width: 240px; left: 50%; transform: translateX(-50%); top: 0; background: var(–card-bg); padding: 24px 20px; z-index: 3; }
-.phone-left { width: 200px; left: 50%; margin-left: -200px; top: 40px; background: var(–dark2); padding: 20px; z-index: 2; transform: rotate(-4deg); opacity: 0.85; }
-.phone-right { width: 200px; left: 50%; margin-left: 0; top: 40px; background: var(–dark2); padding: 20px; z-index: 2; transform: rotate(4deg); opacity: 0.85; }
-
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.card-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(–gray); text-transform: uppercase; }
-.card-icon { width: 30px; height: 30px; background: rgba(242,103,34,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.card-icon svg { width: 16px; height: 16px; stroke: var(–orange); fill: none; }
-.card-amount { font-family: ‘Syne’, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
-.card-currency { font-size: 14px; color: var(–gray); margin-top: 2px; }
-.card-bar-row { display: flex; gap: 4px; margin-top: 16px; }
-.bar { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); flex: 1; overflow: hidden; }
-.bar-fill { height: 100%; background: var(–orange); border-radius: 4px; }
-.card-transactions { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-.txn { display: flex; align-items: center; justify-content: space-between; }
-.txn-avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(–white); flex-shrink:0; }
-.txn-info { flex: 1; margin: 0 10px; }
-.txn-name { font-size: 12px; font-weight: 500; }
-.txn-date { font-size: 10px; color: var(–gray); margin-top: 1px; }
-.txn-amount { font-size: 12px; font-weight: 600; }
-.txn-amount.neg { color: #FF5F5F; }
-.txn-amount.pos { color: #4CAF82; }
-
-/* ── GENERIC SECTION ── */
-section { padding: 100px 48px; position: relative; }
-.section-tag { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(–orange); margin-bottom: 16px; display: block; }
-h2 { font-family: ‘Syne’, sans-serif; font-size: clamp(32px, 4vw, 56px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; }
-
-/* ── MARQUEE ── */
-.marquee-section { padding: 20px 0; overflow: hidden; background: var(–dark); border-top: 1px solid var(–border); border-bottom: 1px solid var(–border); }
-.marquee-track { display: flex; animation: marquee 30s linear infinite; width: max-content; }
-.marquee-item { display: flex; align-items: center; gap: 16px; padding: 0 40px; font-family: ‘Syne’, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(–gray); white-space: nowrap; flex-shrink: 0; }
-.marquee-dot { width: 5px; height: 5px; background: var(–orange); border-radius: 50%; flex-shrink: 0; }
-@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-
-/* ── FEATURES ── */
-.features-section { background: var(–dark); }
-.features-header { text-align: center; margin-bottom: 72px; }
-.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; max-width: 1100px; margin: 0 auto; border: 2px solid var(–border); border-radius: 24px; overflow: hidden; }
-.feature-card { background: var(–card-bg); padding: 40px 36px; transition: background 0.2s; }
-.feature-card:hover { background: #1C1C1C; }
-.feature-num { font-family: ‘Syne’, sans-serif; font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.05); line-height: 1; margin-bottom: 20px; letter-spacing: -0.04em; }
-.feature-icon-wrap { width: 44px; height: 44px; background: rgba(242,103,34,0.1); border: 1px solid rgba(242,103,34,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-.feature-icon-wrap svg { width: 20px; height: 20px; stroke: var(–orange); fill: none; stroke-width: 1.5; }
-.feature-card h3 { font-family: ‘Syne’, sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
-.feature-card p { font-size: 14px; line-height: 1.7; color: var(–gray-light); }
-
-/* ── STATS ── */
-.stats-section { background: var(–black); padding: 80px 48px; }
-.stats-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(–border); border-radius: 20px; overflow: hidden; }
-.stat-box { background: var(–black); padding: 48px 36px; text-align: center; }
-.stat-number { font-family: ‘Syne’, sans-serif; font-size: clamp(36px,4vw,56px); font-weight: 800; letter-spacing: -0.04em; display: flex; align-items: flex-start; justify-content: center; gap: 2px; }
-.stat-number sup { font-size: 0.45em; margin-top: 8px; color: var(–orange); }
-.stat-number sub { font-size: 0.45em; align-self: flex-end; margin-bottom: 6px; color: var(–orange); }
-.stat-label { font-size: 14px; color: var(–gray); margin-top: 8px; }
-
-/* ── CARD SECTION ── */
-.card-section { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
-.card-visual { position: relative; height: 420px; }
-.jeton-card { position: absolute; width: 320px; height: 200px; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; }
-.jeton-card-main { background: linear-gradient(135deg, #1A1A1A 0%, #2A2A2A 100%); border: 1px solid rgba(255,255,255,0.1); top: 40px; left: 20px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); z-index: 2; }
-.jeton-card-shadow { background: linear-gradient(135deg, rgba(242,103,34,0.4) 0%, rgba(242,103,34,0.1) 100%); border: 1px solid rgba(242,103,34,0.2); top: 80px; left: 60px; z-index: 1; filter: blur(2px); opacity: 0.5; }
-.card-chip { width: 36px; height: 26px; background: linear-gradient(135deg, #D4A853, #C08B3A); border-radius: 5px; }
-.card-number { font-family: ‘Syne’, sans-serif; font-size: 15px; letter-spacing: 0.25em; color: rgba(255,255,255,0.5); }
-.card-footer { display: flex; justify-content: space-between; align-items: flex-end; }
-.card-name { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(255,255,255,0.7); }
-.card-exp { font-size: 11px; color: rgba(255,255,255,0.4); }
-.card-brand-mark { display: flex; }
-.card-brand-circle { width: 28px; height: 28px; border-radius: 50%; background: var(–orange); opacity: 0.8; }
-.card-brand-circle:last-child { margin-left: -10px; opacity: 0.6; }
-.card-content { padding: 20px 0; }
-.card-content h2 { margin-bottom: 20px; }
-.card-content p { font-size: 16px; line-height: 1.7; color: var(–gray-light); margin-bottom: 36px; }
-.feature-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-bottom: 40px; }
-.feature-list li { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(–gray-light); }
-.check-icon { width: 20px; height: 20px; background: rgba(76,175,130,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.check-icon svg { width: 10px; height: 10px; stroke: #4CAF82; fill: none; stroke-width: 2.5; }
-
-/* ── EXCHANGE ── */
-.exchange-section { background: var(–dark); }
-.exchange-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
-.exchange-widget { background: var(–card-bg); border: 1px solid var(–border); border-radius: 24px; padding: 32px; }
-.exchange-widget h4 { font-family: ‘Syne’, sans-serif; font-size: 14px; font-weight: 600; color: var(–gray); margin-bottom: 24px; letter-spacing: 0.06em; text-transform: uppercase; }
-.currency-row { background: var(–dark); border: 1px solid var(–border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.currency-flag { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.05); }
-.currency-info { display: flex; align-items: center; flex: 1; }
-.currency-name { font-weight: 600; font-size: 15px; margin-left: 12px; }
-.currency-full { font-size: 12px; color: var(–gray); margin-left: 8px; }
-.currency-amount-input { background: transparent; border: none; outline: none; font-family: ‘Syne’, sans-serif; font-size: 20px; font-weight: 700; color: var(–white); text-align: right; width: 120px; }
-.exchange-arrow { display: flex; align-items: center; justify-content: center; margin: 4px 0 16px; }
-.exchange-arrow-btn { width: 36px; height: 36px; background: var(–orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.35s; border: none; }
-.exchange-arrow-btn:hover { transform: rotate(180deg); }
-.exchange-arrow-btn svg { width: 16px; height: 16px; stroke: var(–white); fill: none; stroke-width: 2; }
-.exchange-rate-info { display: flex; align-items: center; justify-content: space-between; padding-top: 20px; border-top: 1px solid var(–border); font-size: 13px; color: var(–gray); }
-.rate-value { font-weight: 600; color: var(–white); }
-
-/* ── TESTIMONIALS ── */
-.testimonials-section { background: var(–black); }
-.testimonials-header { text-align: center; margin-bottom: 64px; }
-.testimonials-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
-.testimonial-card { background: var(–card-bg); border: 1px solid var(–border); border-radius: 20px; padding: 32px; transition: border-color 0.2s, transform 0.2s; }
-.testimonial-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-4px); }
-.testimonial-card:first-child { grid-column: 1 / -1; background: rgba(242,103,34,0.05); border-color: rgba(242,103,34,0.2); }
-.stars { display: flex; gap: 4px; margin-bottom: 16px; }
-.star { color: var(–orange); font-size: 14px; }
-.testimonial-text { font-size: 15px; line-height: 1.75; color: rgba(255,255,255,0.8); margin-bottom: 24px; }
-.testimonial-author { display: flex; align-items: center; gap: 12px; }
-.author-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: ‘Syne’, sans-serif; font-size: 14px; font-weight: 700; background: rgba(242,103,34,0.15); color: var(–orange); flex-shrink: 0; }
-.author-name { font-size: 14px; font-weight: 600; }
-.author-tag { font-size: 12px; color: var(–gray); }
-
-/* ── CTA ── */
-.cta-section { background: var(–dark); padding: 100px 48px; text-align: center; }
-.cta-inner { max-width: 640px; margin: 0 auto; }
-.cta-inner h2 { font-size: clamp(36px,5vw,64px); margin-bottom: 20px; }
-.cta-inner p { font-size: 18px; color: var(–gray-light); margin-bottom: 40px; line-height: 1.6; }
-.cta-badges { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
-
-/* ── FOOTER ── */
-footer { background: var(–black); border-top: 1px solid var(–border); padding: 64px 48px 40px; }
-.footer-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 56px; }
-.footer-brand p { font-size: 14px; line-height: 1.7; color: var(–gray); margin-top: 16px; max-width: 260px; }
-.footer-col h5 { font-family: ‘Syne’, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(–gray); margin-bottom: 16px; }
-.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.footer-col a { font-size: 14px; color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.2s; }
-.footer-col a:hover { color: var(–white); }
-.footer-bottom { max-width: 1100px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(–border); flex-wrap: wrap; gap: 16px; }
-.footer-bottom p { font-size: 12px; color: var(–gray); line-height: 1.6; max-width: 800px; }
-.cert-badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.cert-badge { background: rgba(255,255,255,0.04); border: 1px solid var(–border); border-radius: 8px; padding: 6px 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(–gray); text-transform: uppercase; white-space: nowrap; }
-
-/* ── SCROLL HINT ── */
-.scroll-hint { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; animation: fadeUp 1s 1s ease both; }
-.scroll-hint span { font-size: 11px; letter-spacing: 0.12em; color: var(–gray); text-transform: uppercase; }
-.scroll-line { width: 1px; height: 40px; background: linear-gradient(to bottom, var(–orange), transparent); animation: scrollPulse 2s ease infinite; }
-@keyframes scrollPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
-@keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-nav { padding: 0 24px; }
-.nav-links { display: none; }
-section { padding: 80px 24px; }
-.features-grid { grid-template-columns: 1fr; }
-.stats-inner { grid-template-columns: repeat(2,1fr); }
-.card-section, .exchange-inner { grid-template-columns: 1fr; }
-.testimonials-grid { grid-template-columns: 1fr; }
-.footer-grid { grid-template-columns: 1fr 1fr; }
-.hero-mockups { height: 300px; }
-.phone-left, .phone-right { display: none; }
-.phone-main { width: 200px; }
-}
+  @media (max-width: 900px) {
+    nav { padding: 15px 20px; }
+    .nav-links { display: none; }
+    .request-inner, .packages-grid, .features-grid, .stats-grid, .footer-grid { grid-template-columns: 1fr; }
+    .section-pad { padding: 60px 20px; }
+    h1 { font-size: clamp(32px, 8vw, 50px); }
+    .hero-actions { flex-direction: column; width: 100%; }
+    .hero-actions a { text-align: center; }
+  }
 </style>
-
 </head>
 <body>
 
-<!-- NAV -->
+<div class="bg-blob-1"></div>
+<div class="bg-blob-2"></div>
+<div class="bg-blob-3"></div>
 
-<nav>
-  <a href="#" class="nav-logo">jeton<span class="dot">.</span></a>
+<nav class="glass-card">
+  <a href="#" class="nav-logo">
+    <img src="2A3521A9-7E2C-47C5-A13C-349CC090A87B.png" alt="شعار أي آم سبيشل" onerror="this.style.display='none'">
+    <span><span class="cl-red">أي آم</span> <span class="cl-yellow">سبيشل</span></span>
+  </a>
   <ul class="nav-links">
-    <li><a href="#">Personal</a></li>
-    <li><a href="#">Jeton Card</a></li>
-    <li><a href="#">Fees</a></li>
-    <li><a href="#">Business</a></li>
-    <li><a href="#">Company</a></li>
+    <li><a href="#features">لماذا نحن؟</a></li>
+    <li><a href="#packages">باقات الأعمال</a></li>
+    <li><a href="#partners">شركاؤنا</a></li>
   </ul>
   <div class="nav-actions">
-    <a href="#" class="btn-ghost">Log in</a>
-    <a href="#" class="btn-primary">Sign up</a>
+    <a href="#request" class="btn-primary">طلب شراكة</a>
   </div>
 </nav>
 
-<!-- HERO -->
-
 <section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
-
-  <div class="hero-tag">
-    <span class="pulse"></span>
-    1 Million+ Users Worldwide
-  </div>
-
-  <h1>One app for<br><span class="accent">all needs</span></h1>
-  <p class="hero-sub">Single account for all your payments.</p>
-
+  <span class="hero-tag">✨ حلول الأعمال والشراكات</span>
+  <h1>اجعل مجمعك الوجهة <span>المفضلة</span> للعائلات</h1>
+  <p class="hero-sub">نوفر حلول ضيافة ترفيهية للأطفال داخل المجمعات التجارية والفعاليات الكبرى، ليتسوق زوارك براحة تامة بينما يستمتع أطفالهم بأمان تحت إشراف سعودي 100%.</p>
   <div class="hero-actions">
-    <a href="#" class="btn-large">Get Started</a>
-    <a href="#" class="btn-ghost" style="padding:14px 28px;font-size:15px;">Learn More</a>
-  </div>
-
-  <div class="app-badges">
-    <a href="#" class="app-badge">
-      <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      <div class="app-badge-text"><div class="small">Download on the</div><div class="large">App Store</div></div>
-    </a>
-    <a href="#" class="app-badge">
-      <svg viewBox="0 0 24 24"><path d="M3.18 23.76c.28.15.61.19.93.1l12.46-7.19-2.68-2.69-10.71 9.78zM.29 2.17C.11 2.5 0 2.91 0 3.37v17.26c0 .46.11.87.29 1.2l.06.06 9.68-9.68v-.23L.35 2.11l-.06.06zM20.13 9.63l-2.75-1.59L14.5 11l2.88 2.88 2.76-1.59c.79-.45.79-1.21-.01-1.66zM3.18.24L13.89 10 11.21 12.69.94.43C.62.33.3.37.02.53l-.02.02 3.18-.31z"/></svg>
-      <div class="app-badge-text"><div class="small">Get it on</div><div class="large">Google Play</div></div>
-    </a>
-  </div>
-
-  <!-- Phone Mockups -->
-
-  <div class="hero-mockups">
-    <div class="phone-card phone-left">
-      <div class="card-header">
-        <span class="card-label">Exchange</span>
-        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M7 16l-4-4 4-4m10 8l4-4-4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      </div>
-      <div class="card-amount" style="font-size:22px;">€850.00</div>
-      <div class="card-currency">→ £720.30 GBP</div>
-      <div class="card-bar-row">
-        <div class="bar"><div class="bar-fill" style="width:70%"></div></div>
-        <div class="bar"><div class="bar-fill" style="width:40%"></div></div>
-        <div class="bar"><div class="bar-fill" style="width:85%"></div></div>
-      </div>
-    </div>
-
-```
-<div class="phone-card phone-main">
-  <div class="card-header">
-    <span class="card-label">Balance</span>
-    <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
-  </div>
-  <div class="card-amount">€2,450.00</div>
-  <div class="card-currency">EUR · Personal Account</div>
-  <div class="card-transactions">
-    <div class="txn">
-      <div class="txn-avatar">A</div>
-      <div class="txn-info"><div class="txn-name">Anna M.</div><div class="txn-date">Today, 14:22</div></div>
-      <div class="txn-amount pos">+€120</div>
-    </div>
-    <div class="txn">
-      <div class="txn-avatar" style="background:rgba(242,103,34,0.15);color:var(--orange);">S</div>
-      <div class="txn-info"><div class="txn-name">Spotify</div><div class="txn-date">Yesterday</div></div>
-      <div class="txn-amount neg">-€9.99</div>
-    </div>
-    <div class="txn">
-      <div class="txn-avatar" style="background:rgba(76,175,130,0.1);color:#4CAF82;">J</div>
-      <div class="txn-info"><div class="txn-name">James W.</div><div class="txn-date">Apr 19</div></div>
-      <div class="txn-amount pos">+€300</div>
-    </div>
-  </div>
-</div>
-
-<div class="phone-card phone-right">
-  <div class="card-header">
-    <span class="card-label">Send Money</span>
-    <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-  </div>
-  <div class="card-amount" style="font-size:22px;">€350.00</div>
-  <div class="card-currency">To: Marco R.</div>
-  <div class="card-bar-row" style="margin-top:16px;">
-    <div class="bar" style="flex:2"><div class="bar-fill" style="width:100%;background:linear-gradient(to right,var(--orange),#FF8040);"></div></div>
-    <div class="bar"><div class="bar-fill" style="width:30%"></div></div>
-  </div>
-</div>
-```
-
-  </div>
-
-  <div class="scroll-hint">
-    <span>Scroll</span>
-    <div class="scroll-line"></div>
+    <a href="#request" class="btn-large">ابدأ شراكتك الآن</a>
+    <a href="#packages" class="btn-ghost">استعراض الباقات</a>
   </div>
 </section>
 
-<!-- MARQUEE -->
-
-<div class="marquee-section">
+<div class="marquee-wrap">
   <div class="marquee-track">
-    <div class="marquee-item"><span class="marquee-dot"></span>50+ Payment Methods</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>25+ Countries</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>1M+ Happy Users</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>ISO 27001 Certified</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>FCA Authorised</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Instant Transfers</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>24/7 Support</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Multi-Currency</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Contactless Payments</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>50+ Payment Methods</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>25+ Countries</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>1M+ Happy Users</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>ISO 27001 Certified</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>FCA Authorised</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Instant Transfers</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>24/7 Support</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Multi-Currency</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Contactless Payments</div>
+    <div class="marquee-item">✦ زيادة مدة بقاء العائلات في المجمع </div>
+    <div class="marquee-item">✦ إشراف سعوديات مدربات 100% </div>
+    <div class="marquee-item">✦ بيئة معقمة ومطابقة لمعايير الأمان </div>
+    <div class="marquee-item">✦ تجهيز مساحات لعب متكاملة </div>
+    <div class="marquee-item">✦ أنشطة تفاعلية (ركن الرمل، دراجات، مسرح) </div>
+    <div class="marquee-item">✦ 6 فروع عاملة في كبرى مولات الرياض </div>
+    <div class="marquee-item">✦ زيادة مدة بقاء العائلات في المجمع </div>
+    <div class="marquee-item">✦ إشراف سعوديات مدربات 100% </div>
   </div>
 </div>
 
-<!-- FEATURES -->
+<section class="section-pad">
+  <div class="stats-grid">
+    <div class="stat-box glass-card">
+      <div class="stat-num" style="color:var(--blue-dark)">6</div>
+      <div class="stat-label">فروع في كبرى مولات الرياض</div>
+    </div>
+    <div class="stat-box glass-card">
+      <div class="stat-num" style="color:var(--logo-red)">100%</div>
+      <div class="stat-label">إشراف من مشرفات سعوديات</div>
+    </div>
+    <div class="stat-box glass-card">
+      <div class="stat-num" style="color:var(--green-dark)">0-10</div>
+      <div class="stat-label">سنوات (الفئة العمرية المستهدفة)</div>
+    </div>
+    <div class="stat-box glass-card">
+      <div class="stat-num" style="color:var(--logo-yellow)">∞</div>
+      <div class="stat-label">وقت ضيافة مفتوح للزوار</div>
+    </div>
+  </div>
+</section>
 
-<section class="features-section">
-  <div class="features-header">
-    <span class="section-tag">Why Jeton</span>
-    <h2>Unify your finances</h2>
+<section class="section-pad" id="features">
+  <div class="section-header">
+    <h2 style="color: var(--blue-dark);">قيمة مضافة حقيقية لمشروعك</h2>
+    <p style="font-size:18px; color:var(--muted); font-weight:700; margin-top:10px;">نحن لا نوفر مساحة لعب فقط، بل نصنع تجربة مريحة تزيد من ولاء عملائك.</p>
   </div>
   <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-num">01</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>Add or send in a few taps</h3>
-      <p>Easily add or send money from your account. Simple, fast and designed for everyday use.</p>
+    <div class="feature-card glass-card">
+      <span class="f-icon">🛡️</span>
+      <h3>بيئة آمنة ومعقمة</h3>
+      <p>نطبق أعلى معايير السلامة والتعقيم المستمر لجميع الأسطح لضمان صحة الأطفال وراحة بال الآباء.</p>
     </div>
-    <div class="feature-card">
-      <div class="feature-num">02</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3" stroke-linecap="round"/></svg></div>
-      <h3>Fast and safe transactions</h3>
-      <p>Fast and safe transactions at your fingertips. Your money moves when you need it to.</p>
+    <div class="feature-card glass-card">
+      <span class="f-icon">👩🏻‍💼</span>
+      <h3>فريق سعودي مختص</h3>
+      <p>طاقم متكامل من المشرفات السعوديات المدربات على التعامل التربوي والترفيهي مع الأطفال بمختلف أعمارهم.</p>
     </div>
-    <div class="feature-card">
-      <div class="feature-num">03</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>Move money across Europe</h3>
-      <p>Send money anywhere in the EU, effortlessly. Jeton connects you to 25+ countries.</p>
+    <div class="feature-card glass-card">
+      <span class="f-icon">🎨</span>
+      <h3>تنوع الأنشطة والأركان</h3>
+      <p>من ركن الرمل ومضمار الدراجات إلى المطبخ الصغير والمسرح، برامجنا تضمن عدم شعور الطفل بالملل.</p>
     </div>
-    <div class="feature-card">
-      <div class="feature-num">04</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9m-9 9a9 9 0 019-9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>50+ payment methods</h3>
-      <p>Jeton is connected with more than 25 countries and 50 payment methods across Europe.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-num">05</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7 16l-4-4 4-4m10 8l4-4-4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>Multi-currency exchange</h3>
-      <p>Convert fiat currencies easily. Real-time rates, minimal fees, instant conversion.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-num">06</div>
-      <div class="feature-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>Secure &amp; regulated</h3>
-      <p>Authorised by the FCA and Central Bank of Cyprus. ISO 27001 certified. Your funds are protected.</p>
+    <div class="feature-card glass-card">
+      <span class="f-icon">📈</span>
+      <h3>زيادة مبيعات المجمع</h3>
+      <p>عندما يتسوق الآباء بدون تشتت أو قلق على أطفالهم، تزداد مدة بقائهم في المجمع وتتضاعف القوة الشرائية.</p>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
-
-<section class="stats-section">
-  <div class="stats-inner">
-    <div class="stat-box"><div class="stat-number"><sup>+</sup>1M</div><div class="stat-label">Happy Users</div></div>
-    <div class="stat-box"><div class="stat-number"><sup>+</sup>50</div><div class="stat-label">Payment Methods</div></div>
-    <div class="stat-box"><div class="stat-number"><sup>+</sup>25</div><div class="stat-label">Countries</div></div>
-    <div class="stat-box"><div class="stat-number">24<sub>/7</sub></div><div class="stat-label">Support Available</div></div>
+<section class="section-pad" id="packages">
+  <div class="section-header">
+    <h2 style="color: var(--logo-red);">باقات وشراكات مرنة</h2>
   </div>
-</section>
-
-<!-- JETON CARD -->
-
-<section style="background:var(--black);padding:100px 48px;">
-  <div class="card-section">
-    <div class="card-visual">
-      <div class="jeton-card jeton-card-shadow"></div>
-      <div class="jeton-card jeton-card-main">
-        <div class="card-chip"></div>
-        <div class="card-number">•••• •••• •••• 4821</div>
-        <div class="card-footer">
-          <div><div class="card-name">CARD HOLDER</div><div class="card-exp">Valid 05/29</div></div>
-          <div class="card-brand-mark"><div class="card-brand-circle"></div><div class="card-brand-circle"></div></div>
-        </div>
-      </div>
-      <div style="position:absolute;bottom:20px;left:0;right:0;display:flex;flex-direction:column;gap:10px;padding-left:20px;">
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;width:fit-content;">
-          <div style="width:8px;height:8px;background:#4CAF82;border-radius:50%;"></div>
-          <span style="font-size:13px;font-weight:500;">Contactless payment enabled</span>
-        </div>
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;width:fit-content;">
-          <div style="width:8px;height:8px;background:var(--orange);border-radius:50%;"></div>
-          <span style="font-size:13px;font-weight:500;">Spending limit: €5,000/mo</span>
-        </div>
-      </div>
-    </div>
-    <div class="card-content">
-      <span class="section-tag">Jeton Card</span>
-      <h2>Your Go-To for Every Purchase</h2>
-      <p>Contactless payments? Sure. Spending limits? Check. Card freezing? Also check. The Jeton Card is built for how you actually live.</p>
-      <ul class="feature-list">
-        <li><div class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Instant card freezing &amp; unfreezing</li>
-        <li><div class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Customizable spending limits</li>
-        <li><div class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Contactless &amp; online payments</li>
-        <li><div class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Real-time transaction notifications</li>
+  <div class="packages-grid">
+    <div class="package-card glass-card">
+      <div class="pkg-icon">🛍️</div>
+      <h3 class="pkg-title">تشغيل المجمعات التجارية</h3>
+      <p class="pkg-desc">عقود دائمة لتجهيز وتشغيل مساحات ضيافة الأطفال داخل المولات.</p>
+      <ul class="pkg-list">
+        <li>تصميم مساحة اللعب بالكامل</li>
+        <li>توفير جميع الألعاب والأركان</li>
+        <li>طاقم إشراف يومي متكامل</li>
+        <li>لوحة تحكم وتقارير شهرية</li>
       </ul>
-      <a href="#" class="btn-large" style="display:inline-block;">Learn More</a>
+    </div>
+    <div class="package-card glass-card">
+      <div class="pkg-icon">🎪</div>
+      <h3 class="pkg-title">المعارض والفعاليات</h3>
+      <p class="pkg-desc">توفير أركان ضيافة مؤقتة لزوار الفعاليات والمهرجانات الكبرى.</p>
+      <ul class="pkg-list">
+        <li>تجهيز سريع ومرن للمساحات</li>
+        <li>أركان حركية ويدوية تناسب الحدث</li>
+        <li>إدارة دخول وخروج الأطفال بأمان</li>
+        <li>توزيع هدايا تذكارية للزوار</li>
+      </ul>
+    </div>
+    <div class="package-card glass-card">
+      <div class="pkg-icon">🏢</div>
+      <h3 class="pkg-title">قطاع الشركات والمؤسسات</h3>
+      <p class="pkg-desc">حلول ضيافة في مقرات العمل أو المناسبات الخاصة بالموظفين وعائلاتهم.</p>
+      <ul class="pkg-list">
+        <li>رعاية أطفال الموظفين بالفعاليات</li>
+        <li>برامج ترفيهية مخصصة للشركة</li>
+        <li>توفير جليسات أطفال عند الطلب</li>
+        <li>تعزيز بيئة عمل صديقة للعائلة</li>
+      </ul>
     </div>
   </div>
 </section>
 
-<!-- EXCHANGE -->
-
-<section class="exchange-section">
-  <div class="exchange-inner">
+<section class="section-pad" id="request">
+  <div class="request-inner">
     <div>
-      <span class="section-tag">Exchange</span>
-      <h2>Convert fiat cash easily.</h2>
-      <p style="font-size:16px;line-height:1.75;color:var(--gray-light);margin-top:16px;margin-bottom:36px;">Real-time exchange rates with competitive fees. Convert between EUR, GBP, USD and more in seconds.</p>
-      <a href="#" class="btn-large" style="display:inline-block;">Start Exchanging</a>
+      <h2 style="font-size: 40px; margin-bottom: 20px;">دعنا نبني تجربة استثنائية معاً!</h2>
+      <p style="font-size: 18px; color: var(--muted); font-weight: 700; line-height: 1.8; margin-bottom: 30px;">
+        انضم لشركائنا الحاليين (الرياض جاليري، مركز المملكة، ذا فيو مول وغيرها). 
+        أرسل تفاصيل منشأتك وسيقوم فريق المبيعات والتطوير بالتواصل معك خلال 24 ساعة لتقديم عرض مخصص.
+      </p>
+      <div style="display: flex; gap: 20px; font-weight: 800; font-size: 18px; color: var(--blue-dark);">
+        <span>📞 0537333567</span>
+        <span>✉️ info@iamspecial.sa</span>
+      </div>
     </div>
-    <div class="exchange-widget">
-      <h4>Currency Exchange</h4>
-      <div class="currency-row">
-        <div class="currency-info">
-          <div class="currency-flag">🇪🇺</div>
-          <div class="currency-name">EUR</div>
-          <div class="currency-full">Euro</div>
-        </div>
-        <input class="currency-amount-input" id="from-input" type="text" value="1,000.00" readonly>
+    
+    <div class="form-widget glass-card">
+      <h3 style="font-size: 24px; font-weight: 900; margin-bottom: 24px; color: var(--text);">طلب عرض شراكة</h3>
+      <div class="form-group">
+        <label>اسم الجهة (المجمع / الشركة / الفعالية)</label>
+        <input class="form-input glass-card" type="text" placeholder="مثال: مول الرياض...">
       </div>
-      <div class="exchange-arrow">
-        <button class="exchange-arrow-btn" id="swap-btn">
-          <svg viewBox="0 0 24 24"><path d="M7 16l-4-4 4-4m10 8l4-4-4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
+      <div class="form-group">
+        <label>اسم المسؤول المختص</label>
+        <input class="form-input glass-card" type="text" placeholder="الاسم الكامل">
       </div>
-      <div class="currency-row">
-        <div class="currency-info">
-          <div class="currency-flag">🇬🇧</div>
-          <div class="currency-name">GBP</div>
-          <div class="currency-full">British Pound</div>
-        </div>
-        <input class="currency-amount-input" id="to-input" type="text" value="855.20" readonly>
+      <div class="form-group">
+        <label>رقم الجوال للتواصل</label>
+        <input class="form-input glass-card" type="tel" placeholder="05X XXX XXXX" dir="ltr">
       </div>
-      <div class="exchange-rate-info">
-        <span>Exchange Rate</span>
-        <span class="rate-value">1 EUR = 0.8552 GBP</span>
+      <div class="form-group">
+        <label>نوع الشراكة المطلوبة</label>
+        <select class="form-select glass-card">
+          <option>تشغيل مساحة في مجمع تجاري</option>
+          <option>تجهيز ركن في فعالية/معرض</option>
+          <option>شراكة لفعاليات موظفي الشركات</option>
+          <option>أخرى</option>
+        </select>
       </div>
+      <button class="form-submit" onclick="this.textContent='تم استلام طلبك بنجاح ✓'; this.style.background='var(--green-dark)';">إرسال الطلب الآن</button>
     </div>
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-
-<section class="testimonials-section">
-  <div class="testimonials-header">
-    <span class="section-tag">Reviews</span>
-    <h2>Hear it from our clients</h2>
-  </div>
-  <div class="testimonials-grid">
-    <div class="testimonial-card">
-      <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-      <p class="testimonial-text">Very happy with the app. Simple payments and transactions, quick account verification and withdrawals. Support is available around the clock whenever help is needed. Highly recommended for anyone looking for a reliable digital wallet in Europe.</p>
-      <div class="testimonial-author"><div class="author-avatar">VK</div><div><div class="author-name">Vamsi K.</div><div class="author-tag">Verified User · Recommended</div></div></div>
-    </div>
-    <div class="testimonial-card">
-      <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-      <p class="testimonial-text">Awesome app, very user friendly. Would highly recommend Jeton to my friends.</p>
-      <div class="testimonial-author"><div class="author-avatar">LA</div><div><div class="author-name">Leonie A.</div><div class="author-tag">Verified User</div></div></div>
-    </div>
-    <div class="testimonial-card">
-      <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-      <p class="testimonial-text">The best payment solution for German customers. Been a Jeton user for a few years — great support and always able to make payments without any issues.</p>
-      <div class="testimonial-author"><div class="author-avatar">KR</div><div><div class="author-name">Karl R.</div><div class="author-tag">Verified User · Germany</div></div></div>
-    </div>
-    <div class="testimonial-card">
-      <div class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-      <p class="testimonial-text">Great app for fast and easy transfers. Used Jeton for a while without any problem. Recently started using their Jeton Card for everyday purchases too.</p>
-      <div class="testimonial-author"><div class="author-avatar">DP</div><div><div class="author-name">Dennis P.</div><div class="author-tag">Verified User · Easy and Fast</div></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-
-<section class="cta-section">
-  <div class="cta-inner">
-    <span class="section-tag" style="display:block;text-align:center;">Get Started</span>
-    <h2>1 million users,<br><span style="color:var(--orange)">plus you.</span></h2>
-    <p>It only takes a few seconds to get started. Join millions who trust Jeton for their everyday payments.</p>
-    <div class="cta-badges">
-      <a href="#" class="app-badge">
-        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-        <div class="app-badge-text"><div class="small">Download on the</div><div class="large">App Store</div></div>
-      </a>
-      <a href="#" class="app-badge">
-        <svg viewBox="0 0 24 24"><path d="M3.18 23.76c.28.15.61.19.93.1l12.46-7.19-2.68-2.69-10.71 9.78zM.29 2.17C.11 2.5 0 2.91 0 3.37v17.26c0 .46.11.87.29 1.2l.06.06 9.68-9.68v-.23L.35 2.11l-.06.06zM20.13 9.63l-2.75-1.59L14.5 11l2.88 2.88 2.76-1.59c.79-.45.79-1.21-.01-1.66zM3.18.24L13.89 10 11.21 12.69.94.43C.62.33.3.37.02.53l-.02.02 3.18-.31z"/></svg>
-        <div class="app-badge-text"><div class="small">Get it on</div><div class="large">Google Play</div></div>
-      </a>
-      <a href="#" class="btn-large">Sign Up Free</a>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-
-<footer>
+<footer class="glass-card">
   <div class="footer-grid">
-    <div class="footer-brand">
-      <a href="#" class="nav-logo" style="font-size:24px;">jeton<span class="dot">.</span></a>
-      <p>One app for all your payment needs. Authorised by the FCA and Central Bank of Cyprus. Serving 1M+ users across Europe.</p>
+    <div>
+      <div class="nav-logo" style="margin-bottom: 20px;">
+        <span class="cl-red">أي آم</span> <span class="cl-yellow">سبيشل</span>
+      </div>
+      <p style="font-size: 16px; color: var(--muted); font-weight: 600; line-height: 1.8;">
+        الوجهة الأولى والأأمن للضيافة الترفيهية وألعاب الأطفال داخل كبرى المجمعات التجارية في الرياض.
+      </p>
     </div>
     <div class="footer-col">
-      <h5>Get Started</h5>
-      <ul><li><a href="#">Sign Up</a></li><li><a href="#">Login</a></li></ul>
+      <h4>روابط الأعمال</h4>
+      <a href="#features">القيمة المضافة</a>
+      <a href="#packages">الباقات المتوفرة</a>
+      <a href="#request">طلب عرض سعر</a>
     </div>
     <div class="footer-col">
-      <h5>Discover</h5>
-      <ul><li><a href="#">Jeton Card</a></li><li><a href="#">Fees</a></li><li><a href="#">Promotions</a></li></ul>
-    </div>
-    <div class="footer-col">
-      <h5>Company</h5>
-      <ul><li><a href="#">About</a></li><li><a href="#">Newsroom</a></li><li><a href="#">Partnerships</a></li><li><a href="#">Media Assets</a></li><li><a href="#">Release Notes</a></li></ul>
-    </div>
-    <div class="footer-col">
-      <h5>Legal</h5>
-      <ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms &amp; Conditions</a></li><li><a href="#">Cookie Policy</a></li><li><a href="#">AML Policy</a></li><li><a href="#">Disclaimers</a></li></ul>
+      <h4>التواصل المباشر</h4>
+      <a href="tel:0537333567">0537333567</a>
+      <a href="mailto:info@iamspecial.sa">info@iamspecial.sa</a>
+      <p style="font-size: 14px; color: var(--muted); margin-top: 10px;">الرياض، المملكة العربية السعودية</p>
     </div>
   </div>
   <div class="footer-bottom">
-    <div>
-      <div class="cert-badges">
-        <div class="cert-badge">ISO 27001</div>
-        <div class="cert-badge">Cyber Essentials+</div>
-        <div class="cert-badge">FCA Authorised</div>
-        <div class="cert-badge">CBC Licensed</div>
-        <div class="cert-badge">FT 1000 2024 &amp; 2025</div>
-      </div>
-      <p>© 2026 Jeton. LA Orange Limited is authorised by the Financial Conduct Authority under the Electronic Money Regulations 2011, FCA registration number 902088. LA Orange CY Limited is authorised by the Central Bank of Cyprus, Licence No: 115.1.3.66. The Jeton Card is issued by Financial House Limited, FRN 902039.</p>
-    </div>
+    © 2026 أي آم سبيشل للضيافة الترفيهية - قسم الشراكات والأعمال. جميع الحقوق محفوظة.
   </div>
 </footer>
 
 <script>
-  // Nav scroll opacity
+  // تأثير الزجاج في النافذة العلوية
   window.addEventListener('scroll', () => {
-    document.querySelector('nav').style.background =
-      window.scrollY > 50 ? 'rgba(10,10,10,0.97)' : 'rgba(10,10,10,0.85)';
-  });
-
-  // Scroll reveal
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.style.opacity = '1';
-        e.target.style.transform = 'translateY(0)';
-      }
-    });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('.feature-card, .stat-box, .testimonial-card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(el);
-  });
-
-  // Exchange swap
-  document.getElementById('swap-btn').addEventListener('click', function() {
-    const rows = document.querySelectorAll('.currency-row');
-    const swap = (sel, a, b) => {
-      const els = document.querySelectorAll(sel);
-      const tmp = els[0].textContent; els[0].textContent = els[1].textContent; els[1].textContent = tmp;
-    };
-    swap('.currency-flag');
-    swap('.currency-name');
-    swap('.currency-full');
-    const fi = document.getElementById('from-input'), ti = document.getElementById('to-input');
-    const tmp = fi.value; fi.value = ti.value; ti.value = tmp;
+    const nav = document.querySelector('nav');
+    if(window.scrollY > 50) {
+      nav.style.background = 'rgba(255, 255, 255, 0.85)';
+    } else {
+      nav.style.background = 'rgba(255, 255, 255, 0.6)';
+    }
   });
 </script>
 
