@@ -1593,6 +1593,9 @@ async function selectAuthNumber(num) {
         clearFails();
         savePublicSession();
         closeMaintenanceAuth();
+        // ✅ إصلاح #8: تأكد من اكتمال تحميل البيانات قبل عرض الواجهة
+        // (البيانات تُحمَّل في الخلفية منذ فتح بوابة الدخول؛ هذا يضمن اكتمالها)
+        await Promise.all([loadAllDataFromFirebase(), loadCommentsFromFirebase()]).catch(()=>{});
         document.getElementById('loadingOverlay').style.display = 'none';
         generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
         // فحص Firebase في الخلفية (لا يعيق UI)
@@ -1956,6 +1959,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ---- مستخدم جديد: أظهر بوابة الدخول فوراً ----
     if (!checkPublicSession()) {
+        // ✅ إصلاح #7: أخفِ loadingOverlay قبل فتح بوابة الدخول
+        // (كان z-index:100 يحجب maintenanceAuthModal z-index:70 بالكامل)
+        if (lo) {
+            lo.style.transition = 'opacity 0.25s ease';
+            lo.style.opacity = '0';
+            setTimeout(() => { if (lo) lo.style.display = 'none'; }, 250);
+        }
         // حمّل البيانات في الخلفية بشكل متوازٍ أثناء انتظار المصادقة
         Promise.all([loadAllDataFromFirebase(), loadCommentsFromFirebase()]).catch(()=>{});
         openPublicGate();
