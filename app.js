@@ -523,10 +523,13 @@ async function generateOpinionLink() {
     const exp    = Date.now() + 7 * 24 * 3600 * 1000;
     const token  = `op_${Date.now()}`;
 
+    // توليد كلمة مرور 4 أرقام تلقائياً
+    const pin = String(Math.floor(1000 + Math.random() * 9000));
+
     if (db) {
         try {
             await db.collection('appData').doc('opinionTokens').set(
-                { [linkId]: { name, bio, token, exp } },
+                { [linkId]: { name, bio, token, exp, pin, submitted: false } },
                 { merge: true }
             );
         } catch(e) { console.error('Error saving opinion token:', e); }
@@ -535,6 +538,18 @@ async function generateOpinionLink() {
     const url = `${location.origin}${location.pathname}#opinion-${linkId}`;
     document.getElementById('opinionLinkUrl').value = url;
     document.getElementById('opinionLinkResult').classList.remove('hidden');
+
+    // أظهر كلمة المرور للمدير
+    let pinDisplay = document.getElementById('opinionPinDisplay');
+    if (!pinDisplay) {
+        pinDisplay = document.createElement('div');
+        pinDisplay.id = 'opinionPinDisplay';
+        document.getElementById('opinionLinkResult').appendChild(pinDisplay);
+    }
+    pinDisplay.className = 'mt-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-center';
+    pinDisplay.innerHTML = `<p class="text-xs font-bold text-indigo-600 mb-1">كلمة مرور الكاتب (4 أرقام)</p>
+        <p class="text-3xl font-black text-indigo-800 tracking-widest">${pin}</p>
+        <p class="text-xs text-indigo-400 mt-1">أرسلها للكاتب مع الرابط</p>`;
 }
 
 function copyOpinionLink() {
@@ -542,45 +557,95 @@ function copyOpinionLink() {
     showCopyToast('تم نسخ الرابط');
 }
 
+let currentOpinionSlug   = null;
 let currentOpinionToken  = null;
 let currentOpinionAuthor = null;
 
 async function openOpinionWritePage(slug) {
     let data = null;
+    currentOpinionSlug = slug;
 
-    // محاولة التحميل من Firebase (النظام الجديد — معرّف قصير)
     if (db && /^\d{2}-\d{2}-[a-z0-9]{4}$/.test(slug)) {
         try {
             const doc = await db.collection('appData').doc('opinionTokens').get();
             if (doc.exists) data = (doc.data() || {})[slug];
         } catch(e) {}
     }
-
-    // احتياطي: تنسيق base64 القديم
     if (!data) {
-        try {
-            data = JSON.parse(decodeURIComponent(atob(slug)));
-        } catch(e) {
-            alert('الرابط غير صالح');
-            history.replaceState('', '', location.pathname);
-            return;
+        try { data = JSON.parse(decodeURIComponent(atob(slug))); } catch(e) {
+            alert('الرابط غير صالح'); history.replaceState('', '', location.pathname); return;
         }
     }
-
     if (!data || (data.exp && Date.now() > data.exp)) {
-        alert('انتهت صلاحية هذا الرابط');
-        history.replaceState('', '', location.pathname);
-        return;
+        alert('انتهت صلاحية هذا الرابط'); history.replaceState('', '', location.pathname); return;
     }
 
+    // إذا أرسل الكاتب مسبقاً → اذهب مباشرة للمقال
+    if (data.submitted) {
+        const art = globalArticles.find(a => a.token === data.token);
+        if (art) { openGlobalBulletinPage(art.timestamp); return; }
+    }
+
+    // عرض شاشة PIN قبل فتح صفحة الكتابة
+    _showOpinionPinGate(slug, data);
+}
+
+function _showOpinionPinGate(slug, data) {
+    const panel = document.querySelector('#maintenanceAuthModal .glass-panel');
+    if (panel) panel.innerHTML = `
+        <h3 class="font-black text-xl mb-1 text-slate-900">كتابة مقال رأي</h3>
+        <p class="text-sm text-slate-500 font-medium mb-5">أدخل كلمة المرور المكونة من 4 أرقام</p>
+        <div class="flex gap-3 justify-center mb-6" dir="ltr">
+            ${[0,1,2,3].map(i => `<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1"
+                class="opinion-pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-indigo-400"
+                oninput="handleOpinionPinInput(this,${i})" onkeydown="handleOpinionPinKey(event,${i})">`).join('')}
+        </div>
+        <div id="opinionPinError" class="hidden mb-3 text-rose-600 text-sm font-bold text-center">كلمة المرور غير صحيحة</div>
+        <button onclick="closeMaintenanceAuth()" class="w-full py-2.5 bg-white/30 hover:bg-white/50 border border-white/50 text-slate-500 font-bold rounded-xl transition text-sm">إلغاء</button>`;
+    document.getElementById('maintenanceAuthModal').style.display = 'flex';
+    setTimeout(() => document.querySelector('.opinion-pin-box')?.focus(), 100);
+    // احتفظ ببيانات الكاتب
     currentOpinionToken  = data.token;
     currentOpinionAuthor = { name: data.name, bio: data.bio };
+    window._pendingOpinionPin = String(data.pin);
+}
+
+function handleOpinionPinInput(el, idx) {
+    el.value = el.value.replace(/[^0-9]/g, '');
+    if (el.value !== '') {
+        const boxes = document.querySelectorAll('.opinion-pin-box');
+        if (idx < 3) boxes[idx + 1].focus();
+        if (idx === 3) _verifyOpinionPin();
+    }
+}
+function handleOpinionPinKey(e, idx) {
+    if (e.key === 'Backspace' && e.target.value === '' && idx > 0) {
+        const boxes = document.querySelectorAll('.opinion-pin-box');
+        boxes[idx - 1].focus(); boxes[idx - 1].value = '';
+    }
+}
+function _verifyOpinionPin() {
+    const boxes = document.querySelectorAll('.opinion-pin-box');
+    const pin   = Array.from(boxes).map(b => b.value).join('');
+    if (pin.length < 4) return;
+    if (pin === window._pendingOpinionPin) {
+        closeMaintenanceAuth();
+        _openOpinionEditor();
+    } else {
+        const err = document.getElementById('opinionPinError');
+        if (err) err.classList.remove('hidden');
+        boxes.forEach(b => b.value = '');
+        setTimeout(() => boxes[0].focus(), 50);
+    }
+}
+
+function _openOpinionEditor() {
     document.getElementById('opinionWriteTitle').textContent    = 'كتابة مقال رأي';
-    document.getElementById('opinionWriteSubtitle').textContent = `الكاتبة: ${data.name} — ${data.bio}`;
+    document.getElementById('opinionWriteSubtitle').textContent = `الكاتبة: ${currentOpinionAuthor.name} — ${currentOpinionAuthor.bio}`;
     document.getElementById('opinionTitleInput').value = '';
     document.getElementById('opinionBodyInput').value  = '';
-    document.getElementById('opinionWritePage').style.display      = 'flex';
-    document.getElementById('mainPageWrapper').style.display       = 'none';
+    document.getElementById('opinionWritePage').style.display = 'flex';
+    document.getElementById('mainPageWrapper').style.display  = 'none';
 }
 
 async function submitOpinionArticle() {
@@ -594,6 +659,16 @@ async function submitOpinionArticle() {
         authorName: currentOpinionAuthor.name, authorBio: currentOpinionAuthor.bio, token: currentOpinionToken
     });
     await saveGlobalArticlesToFirebase();
+
+    // علّم الرابط كمُرسَل في Firebase
+    if (db && currentOpinionSlug) {
+        try {
+            await db.collection('appData').doc('opinionTokens').set(
+                { [currentOpinionSlug]: { submitted: true, submittedTs: ts } }, { merge: true }
+            );
+        } catch(_) {}
+    }
+
     document.getElementById('opinionWritePage').style.display = 'none';
     document.getElementById('mainPageWrapper').style.display  = 'flex';
     history.replaceState('', '', location.pathname);
@@ -1346,27 +1421,149 @@ function calculateTrial() {
 }
 
 // ============================================================
-// Auth — كلمة مرور إيموجي + رقم
+// Auth — بوابة عامة (إيموجي+رقم) + صلاحيات مدير (PIN تاريخ)
 // ============================================================
-const SESSION_KEY  = 'ispecial_admin_session';
-const BLOCK_KEY    = 'ispecial_auth_blocked';
-const FAIL_KEY     = 'ispecial_auth_fails';
-const saveSession  = () => localStorage.setItem(SESSION_KEY, 'forever');
-const checkSession = () => localStorage.getItem(SESSION_KEY) === 'forever';
-const isBlocked    = () => localStorage.getItem(BLOCK_KEY) === '1';
-const getFailCount = () => parseInt(localStorage.getItem(FAIL_KEY) || '0');
-const incFail      = () => localStorage.setItem(FAIL_KEY, getFailCount() + 1);
-const clearFails   = () => localStorage.removeItem(FAIL_KEY);
+const SESSION_KEY       = 'ispecial_pub_session';   // جلسة الزائر العام
+const ADMIN_SESSION_KEY = 'ispecial_admin_session';  // جلسة المدير
+const BLOCK_KEY_LOCAL   = 'ispecial_auth_blocked';
+const FAIL_KEY          = 'ispecial_auth_fails';
+
+const savePublicSession = () => localStorage.setItem(SESSION_KEY, 'granted');
+const checkPublicSession= () => localStorage.getItem(SESSION_KEY) === 'granted';
+const saveAdminSession  = () => localStorage.setItem(ADMIN_SESSION_KEY, 'forever');
+const checkSession      = () => localStorage.getItem(ADMIN_SESSION_KEY) === 'forever'; // admin
+const isBlockedLocally  = () => localStorage.getItem(BLOCK_KEY_LOCAL) === '1';
+const getFailCount      = () => parseInt(localStorage.getItem(FAIL_KEY) || '0');
+const incFail           = () => localStorage.setItem(FAIL_KEY, getFailCount() + 1);
+const clearFails        = () => localStorage.removeItem(FAIL_KEY);
 
 const CORRECT_EMOJI  = '🙏🏻';
 const CORRECT_NUMBER = '78';
 
-let _authEmojiChosen = null;
+let _authEmojiChosen  = null;
+let _isPublicGate     = true;  // true = بوابة عامة، false = لوحة المدير
 
+// ---- التحقق من الحظر عبر Firebase ----
+async function checkFirebaseBlock() {
+    if (!db) return isBlockedLocally();
+    try {
+        const doc = await db.collection('appData').doc('blockedIPs').get();
+        const sid = getCommentSessionId();
+        if (doc.exists && doc.data()[sid]) return true;
+    } catch(_) {}
+    return isBlockedLocally();
+}
+
+async function blockInFirebase() {
+    localStorage.setItem(BLOCK_KEY_LOCAL, '1');
+    if (!db) return;
+    try {
+        const sid = getCommentSessionId();
+        await db.collection('appData').doc('blockedIPs').set({ [sid]: true }, { merge: true });
+    } catch(_) {}
+}
+
+async function unblockInFirebase(sid) {
+    if (!db) return;
+    try {
+        await db.collection('appData').doc('blockedIPs').set({ [sid]: firebase.firestore.FieldValue.delete() }, { merge: true });
+    } catch(_) {}
+}
+
+// ---- فتح البوابة العامة ----
+function openPublicGate() {
+    _isPublicGate = true;
+    _authEmojiChosen = null;
+    _resetAuthModal('اختاري الإيموجي للدخول');
+    document.getElementById('maintenanceAuthModal').style.display = 'flex';
+}
+
+// ---- فتح لوحة المدير (عبر زر الهيدر) ----
+function openMaintenanceAuth() {
+    if (checkSession()) {
+        isAdminLoggedIn = true;
+        document.getElementById('adminModal').style.display = 'flex';
+        loadAdminData(); generateNewspaper();
+        return;
+    }
+    _isPublicGate = false;
+    _showAdminPinStep();
+    document.getElementById('maintenanceAuthModal').style.display = 'flex';
+}
+
+function _resetAuthModal(label) {
+    // إعادة بناء المحتوى للبوابة العامة
+    const panel = document.querySelector('#maintenanceAuthModal .glass-panel');
+    if (!panel) return;
+    panel.innerHTML = `
+        <h3 class="font-black text-xl mb-1 text-slate-900">مرحباً</h3>
+        <p id="authStepLabel" class="mb-5 font-medium text-slate-500 text-sm">${label}</p>
+        <div id="authWarning" class="hidden mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold px-4 py-2.5 rounded-xl">بقي لديكِ محاولة واحدة فقط ⚠️</div>
+        <div id="authEmojiStep" class="grid grid-cols-4 gap-3 mb-5">
+            ${['👏🏻','🫱🏻‍🫲🏽','🫶🏻','🙏🏻','✍🏻','👍🏻','🤲🏻','💪🏻'].map(e =>
+                `<button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('${e}')">${e}</button>`
+            ).join('')}
+        </div>
+        <div id="authNumberStep" class="hidden grid grid-cols-4 gap-3 mb-5">
+            ${['12','23','34','45','56','67','78','98'].map(n =>
+                `<button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('${n}')">${n}</button>`
+            ).join('')}
+        </div>
+        <button id="authBackBtn" class="hidden w-full mb-3 py-2.5 bg-white/40 hover:bg-white/60 border border-white/60 text-slate-600 font-bold rounded-xl transition text-sm" onclick="authGoBack()">← السابق</button>`;
+}
+
+function _showAdminPinStep() {
+    const panel = document.querySelector('#maintenanceAuthModal .glass-panel');
+    if (!panel) return;
+    panel.innerHTML = `
+        <h3 class="font-black text-xl mb-2 text-slate-900">الإدارة العليا</h3>
+        <p class="mb-6 font-medium text-slate-500 text-sm">أدخل كلمة مرور اليوم</p>
+        <div class="flex gap-3 justify-center mb-8 ltr" dir="ltr">
+            ${[0,1,2,3].map(i => `<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1"
+                class="admin-pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-slate-400"
+                oninput="handleAdminBoxInput(this,${i})" onkeydown="handleAdminBoxKey(event,${i})">`).join('')}
+        </div>
+        <div id="adminPinError" class="hidden mb-4 text-rose-600 text-sm font-bold text-center">كلمة المرور غير صحيحة</div>
+        <button onclick="closeMaintenanceAuth()" class="w-full py-2.5 bg-white/30 hover:bg-white/50 border border-white/50 text-slate-500 font-bold rounded-xl transition text-sm">إلغاء</button>`;
+    setTimeout(() => document.querySelector('.admin-pin-box')?.focus(), 100);
+}
+
+function handleAdminBoxInput(el, idx) {
+    el.value = el.value.replace(/[^0-9]/g, '');
+    if (el.value !== '') {
+        const boxes = document.querySelectorAll('.admin-pin-box');
+        if (idx < 3) boxes[idx + 1].focus();
+        if (idx === 3) _verifyAdminPin();
+    }
+}
+function handleAdminBoxKey(e, idx) {
+    if (e.key === 'Backspace' && e.target.value === '' && idx > 0) {
+        const boxes = document.querySelectorAll('.admin-pin-box');
+        boxes[idx - 1].focus(); boxes[idx - 1].value = '';
+    }
+}
+function _verifyAdminPin() {
+    const boxes = document.querySelectorAll('.admin-pin-box');
+    const pin   = Array.from(boxes).map(b => b.value).join('');
+    if (pin.length < 4) return;
+    const today   = new Date();
+    const correct = today.getDate().toString().padStart(2, '0') + (today.getMonth() + 1).toString().padStart(2, '0');
+    if (pin === correct) {
+        isAdminLoggedIn = true; saveAdminSession(); closeMaintenanceAuth();
+        document.getElementById('adminModal').style.display = 'flex';
+        loadAdminData(); generateNewspaper();
+        if (currentBulletinData?.branchId) openBulletinPage(currentBulletinData.branchId, currentArticleTimestamp);
+    } else {
+        const errEl = document.getElementById('adminPinError');
+        if (errEl) errEl.classList.remove('hidden');
+        boxes.forEach(b => b.value = '');
+        setTimeout(() => boxes[0].focus(), 50);
+    }
+}
+
+// ---- بوابة الإيموجي+رقم ----
 function selectAuthEmoji(emoji) {
-    if (isBlocked()) { showAuthBlocked(); return; }
     _authEmojiChosen = emoji;
-    // انتقل للخطوة 2
     document.getElementById('authEmojiStep').classList.add('hidden');
     document.getElementById('authNumberStep').classList.remove('hidden');
     document.getElementById('authBackBtn').classList.remove('hidden');
@@ -1378,86 +1575,51 @@ function authGoBack() {
     document.getElementById('authNumberStep').classList.add('hidden');
     document.getElementById('authBackBtn').classList.add('hidden');
     document.getElementById('authEmojiStep').classList.remove('hidden');
-    document.getElementById('authStepLabel').textContent = 'اختاري الإيموجي المناسب';
-    document.getElementById('authWarning').classList.add('hidden');
+    document.getElementById('authStepLabel').textContent = 'اختاري الإيموجي للدخول';
+    const w = document.getElementById('authWarning'); if (w) w.classList.add('hidden');
 }
 
-function selectAuthNumber(num) {
-    if (isBlocked()) { showAuthBlocked(); return; }
+async function selectAuthNumber(num) {
     if (_authEmojiChosen === CORRECT_EMOJI && num === CORRECT_NUMBER) {
-        // ✅ صحيح
         clearFails();
-        isAdminLoggedIn = true;
-        saveSession();
+        savePublicSession();
         closeMaintenanceAuth();
-        document.getElementById('adminModal').style.display = 'flex';
-        loadAdminData(); generateNewspaper();
-        if (currentBulletinData?.branchId) openBulletinPage(currentBulletinData.branchId, currentArticleTimestamp);
+        // أظهر المحتوى
+        document.getElementById('loadingOverlay').style.display = 'none';
+        generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
     } else {
-        // ❌ خطأ
         incFail();
-        const fails = getFailCount();
-        if (fails >= 2) {
-            localStorage.setItem(BLOCK_KEY, '1');
-            showAuthBlocked();
+        if (getFailCount() >= 2) {
+            await blockInFirebase();
+            _showBlockedScreen();
         } else {
-            // تحذير: بقيت محاولة واحدة
-            document.getElementById('authWarning').classList.remove('hidden');
+            const w = document.getElementById('authWarning'); if (w) w.classList.remove('hidden');
             authGoBack();
         }
     }
 }
 
-function showAuthBlocked() {
-    document.getElementById('authEmojiStep').classList.add('hidden');
-    document.getElementById('authNumberStep').classList.add('hidden');
-    document.getElementById('authBackBtn').classList.add('hidden');
-    document.getElementById('authWarning').classList.add('hidden');
-    document.getElementById('authStepLabel').textContent = '';
-    const modal = document.querySelector('#maintenanceAuthModal .glass-panel');
-    if (modal) modal.innerHTML = `
+function _showBlockedScreen() {
+    const panel = document.querySelector('#maintenanceAuthModal .glass-panel');
+    if (!panel) return;
+    panel.innerHTML = `
         <div class="text-center py-4">
             <div class="text-5xl mb-4">🚫</div>
             <h3 class="font-black text-xl mb-2 text-rose-700">تم حظر الدخول</h3>
-            <p class="text-slate-500 text-sm font-medium mb-6">تواصلي مع الإدارة العليا لإلغاء الحظر</p>
-            <button onclick="closeMaintenanceAuth()" class="w-full py-3 bg-white/50 border border-white/60 text-slate-700 font-bold rounded-xl transition">إغلاق</button>
+            <p class="text-slate-500 text-sm font-medium mb-6">تواصلي مع الإدارة للمساعدة</p>
         </div>`;
 }
 
-// إلغاء الحظر — تستدعيها الإدارة العليا (تُستدعى من كونسول المتصفح أو يمكن إضافة زر خفي)
-function unblockAuth() {
-    localStorage.removeItem(BLOCK_KEY);
-    clearFails();
-    alert('تم إلغاء الحظر بنجاح');
-}
-
-function openMaintenanceAuth() {
-    if (isBlocked()) {
-        // أعد بناء المودال ليظهر شاشة الحظر مباشرة
-        document.getElementById('maintenanceAuthModal').style.display = 'flex';
-        showAuthBlocked();
-        return;
-    }
-    if (checkSession()) {
-        isAdminLoggedIn = true;
-        document.getElementById('adminModal').style.display = 'flex';
-        loadAdminData(); generateNewspaper();
-        return;
-    }
-    // إعادة المودال لوضعه الأصلي
-    _authEmojiChosen = null;
-    document.getElementById('authEmojiStep').classList.remove('hidden');
-    document.getElementById('authNumberStep').classList.add('hidden');
-    document.getElementById('authBackBtn').classList.add('hidden');
-    document.getElementById('authWarning').classList.add('hidden');
-    document.getElementById('authStepLabel').textContent = 'اختاري الإيموجي المناسب';
-    document.getElementById('maintenanceAuthModal').style.display = 'flex';
+async function showAuthBlocked() {
+    const blocked = await checkFirebaseBlock();
+    if (blocked) { _showBlockedScreen(); return true; }
+    return false;
 }
 
 function closeMaintenanceAuth() { document.getElementById('maintenanceAuthModal').style.display = 'none'; }
 function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
 
-// دوال قديمة موجودة في HTML — نبقيها فارغة لتجنب أخطاء
+// دوال احتياطية لتجنب أخطاء HTML القديم
 function handleBoxInput() {}
 function handleBoxKey()   {}
 function checkAdminPinLength() {}
@@ -1473,7 +1635,37 @@ async function deleteArticle(branchId, ts) {
     showCopyToast('تم حذف المقال');
 }
 
-async function deleteGlobalArticle(ts) {
+async function loadBlockedUsers() {
+    if (!db) return;
+    try {
+        const doc = await db.collection('appData').doc('blockedIPs').get();
+        const list = document.getElementById('blockedUsersList');
+        if (!doc.exists || !Object.keys(doc.data()).length) {
+            list.innerHTML = '<p class="text-xs text-slate-500 font-medium">لا يوجد مستخدمون محظورون</p>';
+            list.classList.remove('hidden'); return;
+        }
+        const sessions = Object.keys(doc.data());
+        list.innerHTML = sessions.map(sid => `
+            <div class="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2 border border-white/60">
+                <span class="text-xs font-mono text-slate-600 truncate max-w-[160px]">${sid}</span>
+                <button onclick="unblockUser('${sid}')" class="btn-outline btn-outline-emerald text-xs px-2 py-1 rounded-lg flex-shrink-0">فك الحظر</button>
+            </div>`).join('');
+        list.classList.remove('hidden');
+    } catch(e) { console.error(e); }
+}
+
+async function unblockUser(sid) {
+    await unblockInFirebase(sid);
+    // إذا كان هو نفس الجهاز الحالي
+    if (sid === getCommentSessionId()) {
+        localStorage.removeItem(BLOCK_KEY_LOCAL);
+        clearFails();
+    }
+    showCopyToast('تم فك الحظر ✓');
+    loadBlockedUsers();
+}
+
+
     if (!confirm('هل تريد حذف هذا المقال نهائياً؟')) return;
     globalArticles = globalArticles.filter(a => a.timestamp !== ts);
     await saveGlobalArticlesToFirebase();
@@ -1760,56 +1952,68 @@ async function generateCaseStudyLink() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const lo = document.getElementById('loadingOverlay');
-    const alreadyLoggedIn = checkSession() && !isBlocked();
 
-    // مستخدم جديد: اعرض نافذة الدخول فوق شاشة الانتظار فوراً
-    if (!alreadyLoggedIn && !isBlocked()) {
-        openMaintenanceAuth();
+    // ---- تحقق من الحظر أولاً ----
+    if (isBlockedLocally()) {
+        _showBlockedScreen();
+        document.getElementById('maintenanceAuthModal').style.display = 'flex';
+        return;
     }
 
+    // ---- مستخدم جديد: أظهر البوابة العامة فوق شاشة الانتظار ----
+    if (!checkPublicSession()) {
+        openPublicGate();
+        // حمّل البيانات في الخلفية
+        await loadAllDataFromFirebase();
+        await loadCommentsFromFirebase();
+        if (checkSession()) isAdminLoggedIn = true;
+        getCommentSessionId();
+        return; // المحتوى سيُعرض عند نجاح المصادقة في selectAuthNumber
+    }
+
+    // ---- مستخدم مسجّل: تحقق من الحظر عبر Firebase ----
+    const blocked = await checkFirebaseBlock();
+    if (blocked) {
+        _showBlockedScreen();
+        document.getElementById('maintenanceAuthModal').style.display = 'flex';
+        return;
+    }
+
+    // ---- تحميل البيانات وعرض المحتوى ----
     const loadStart = Date.now();
     await loadAllDataFromFirebase();
     await loadCommentsFromFirebase();
-    const elapsed  = Date.now() - loadStart;
-    const minWait  = 1200; // ½ ثانية الحد الأدنى للظهور
+    const elapsed   = Date.now() - loadStart;
+    const minWait   = 1000;
     const remaining = Math.max(0, minWait - elapsed);
-
-    if (alreadyLoggedIn) {
-        // مستخدم مسجّل: أظهر الشاشة تتلاشى بعد نصف وقت الانتظار
-        setTimeout(() => {
-            if (lo) lo.style.transition = 'background 0.8s ease, backdrop-filter 0.8s ease';
-            if (lo) { lo.style.background = 'transparent'; lo.style.backdropFilter = 'none'; }
-        }, remaining / 2);
-        setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining + 400);
-    } else {
-        // مستخدم جديد: أخفِ الشاشة بعد اكتمال التحميل
-        setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining);
-    }
 
     if (checkSession()) isAdminLoggedIn = true;
     getCommentSessionId();
+
+    // تلاشي شاشة الانتظار تدريجياً
+    setTimeout(() => {
+        if (lo) { lo.style.transition = 'background 0.8s ease, backdrop-filter 0.8s ease'; lo.style.background = 'transparent'; lo.style.backdropFilter = 'none'; }
+    }, remaining / 2);
+    setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining + 400);
 
     const hash = location.hash;
     if (hash && hash.startsWith('#opinion-')) {
         const slug = hash.replace('#opinion-', '');
         generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
-        openOpinionWritePage(slug);
-        return;
+        openOpinionWritePage(slug); return;
     }
     if (hash && hash.startsWith('#bulletin-')) {
         const parts = hash.split('-'), bid = parseInt(parts[1]), ts = parts.length > 2 ? parseInt(parts[2]) : null;
         if (bid >= 1 && bid <= 6) {
             generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
-            setTimeout(() => openBulletinPage(bid, ts), 100);
-            return;
+            setTimeout(() => openBulletinPage(bid, ts), 100); return;
         }
     }
     if (hash && hash.startsWith('#global-')) {
         const ts = parseInt(hash.replace('#global-', ''));
         if (!isNaN(ts)) {
             generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
-            setTimeout(() => openGlobalBulletinPage(ts), 100);
-            return;
+            setTimeout(() => openGlobalBulletinPage(ts), 100); return;
         }
     }
     generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
