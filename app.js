@@ -17,6 +17,9 @@ try {
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        // تسريع: تقليل timeout الشبكة وتفعيل cache محلي
+        db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
+        db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
     }
 } catch (e) { console.error("Firebase init error:", e); }
 
@@ -53,10 +56,12 @@ let branchArticles = {};
 let globalArticles = [];
 
 // ============================================================
-// Firebase helpers
+// Firebase helpers — مُحسَّنة للسرعة
 // ============================================================
+
+// ✅ إصلاح #1: timeout قصير (3 ثوان بدل 6) لتجنب الانتظار الطويل
 const _fbTimeout  = ms => new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), ms));
-const _loadDoc    = ref => Promise.race([ref.get(), _fbTimeout(6000)]);
+const _loadDoc    = ref => Promise.race([ref.get(), _fbTimeout(3000)]);
 const _fbSave     = (doc, data) => db ? db.collection('appData').doc(doc).set(data).catch(()=>{}) : null;
 
 const saveBranchesToFirebase       = () => _fbSave('branches',       { data: branchesData });
@@ -64,38 +69,58 @@ const saveHistoryToFirebase        = () => _fbSave('history',        { data: bra
 const saveArticlesToFirebase       = () => _fbSave('articles',       { data: branchArticles });
 const saveGlobalArticlesToFirebase = () => _fbSave('globalArticles', { data: globalArticles });
 
+// ✅ إصلاح #2: تحميل كل documents بالتوازي بدل التسلسل
 async function loadAllDataFromFirebase() {
     if (!db) return;
     try {
-        const bd = await _loadDoc(db.collection('appData').doc('branches'));
-        if (bd.exists) branchesData = bd.data().data;
-        else db.collection('appData').doc('branches').set({ data: branchesData }).catch(()=>{});
+        // تحميل الـ 4 documents في نفس الوقت بدل واحد تلو الآخر
+        const [bd, hd, ad, gd] = await Promise.allSettled([
+            _loadDoc(db.collection('appData').doc('branches')),
+            _loadDoc(db.collection('appData').doc('history')),
+            _loadDoc(db.collection('appData').doc('articles')),
+            _loadDoc(db.collection('appData').doc('globalArticles'))
+        ]);
 
-        try {
-            const h = await _loadDoc(db.collection('appData').doc('history'));
-            if (h.exists) branchHistory = h.data().data;
-        } catch(_) {}
+        // branches
+        if (bd.status === 'fulfilled' && bd.value.exists) {
+            branchesData = bd.value.data().data;
+        } else if (bd.status === 'fulfilled' && !bd.value.exists) {
+            db.collection('appData').doc('branches').set({ data: branchesData }).catch(()=>{});
+        }
 
-        try {
-            const ad = await _loadDoc(db.collection('appData').doc('articles'));
-            if (ad.exists) {
-                const la = ad.data().data;
-                for (const id in la) {
-                    if (!Array.isArray(la[id])) {
-                        const o = la[id], text = typeof o === 'string' ? o : o.text, ts = typeof o === 'object' && o.date ? o.date : Date.now();
-                        la[id] = [{ type:'performance', text, timestamp:ts, dateStr:new Date(ts).toISOString().split('T')[0], snapshot:{...branchesData[id]}, scores:calcScores(branchesData[id]) }];
-                    } else {
-                        la[id] = la[id].map(a => ({ type:'performance', ...a }));
-                    }
+        // history
+        if (hd.status === 'fulfilled' && hd.value.exists) {
+            branchHistory = hd.value.data().data;
+        }
+
+        // articles
+        if (ad.status === 'fulfilled' && ad.value.exists) {
+            const la = ad.value.data().data;
+            for (const id in la) {
+                if (!Array.isArray(la[id])) {
+                    const o = la[id], text = typeof o === 'string' ? o : o.text, ts = typeof o === 'object' && o.date ? o.date : Date.now();
+                    la[id] = [{ type:'performance', text, timestamp:ts, dateStr:new Date(ts).toISOString().split('T')[0], snapshot:{...branchesData[id]}, scores:calcScores(branchesData[id]) }];
+                } else {
+                    la[id] = la[id].map(a => ({ type:'performance', ...a }));
                 }
-                branchArticles = la;
             }
-        } catch(_) {}
+            branchArticles = la;
+        }
 
-        try {
-            const g = await _loadDoc(db.collection('appData').doc('globalArticles'));
-            if (g.exists) globalArticles = g.data().data || [];
-        } catch(_) {}
+        // globalArticles
+        if (gd.status === 'fulfilled' && gd.value.exists) {
+            globalArticles = gd.value.data().data || [];
+        }
+
+    } catch(_) {}
+}
+
+// ✅ إصلاح #3: تحميل التعليقات موازياً مع البيانات الأخرى (لا يُنتظر منفرداً)
+async function loadCommentsFromFirebase() {
+    if (!db) return;
+    try {
+        const doc = await _loadDoc(db.collection('appData').doc('caseComments'));
+        if (doc.exists) caseStudyComments = doc.data().data || {};
     } catch(_) {}
 }
 
@@ -500,7 +525,7 @@ async function saveWeeklyArticle() {
 function closeWeeklyModal() { document.getElementById('weeklyModal').style.display = 'none'; }
 
 // ============================================================
-// رابط الكاتب الخارجي — نظام جديد بمعرّف قصير مبني على التاريخ
+// رابط الكاتب الخارجي
 // ============================================================
 function openOpinionLinkModal() {
     document.getElementById('opinionAuthorName').value = '';
@@ -522,8 +547,6 @@ async function generateOpinionLink() {
     const linkId = `${dd}-${mm}-${rand}`;
     const exp    = Date.now() + 7 * 24 * 3600 * 1000;
     const token  = `op_${Date.now()}`;
-
-    // توليد كلمة مرور 4 أرقام تلقائياً
     const pin = String(Math.floor(1000 + Math.random() * 9000));
 
     if (db) {
@@ -539,7 +562,6 @@ async function generateOpinionLink() {
     document.getElementById('opinionLinkUrl').value = url;
     document.getElementById('opinionLinkResult').classList.remove('hidden');
 
-    // أظهر كلمة المرور للمدير
     let pinDisplay = document.getElementById('opinionPinDisplay');
     if (!pinDisplay) {
         pinDisplay = document.createElement('div');
@@ -580,13 +602,11 @@ async function openOpinionWritePage(slug) {
         alert('انتهت صلاحية هذا الرابط'); history.replaceState('', '', location.pathname); return;
     }
 
-    // إذا أرسل الكاتب مسبقاً → اذهب مباشرة للمقال
     if (data.submitted) {
         const art = globalArticles.find(a => a.token === data.token);
         if (art) { openGlobalBulletinPage(art.timestamp); return; }
     }
 
-    // عرض شاشة PIN قبل فتح صفحة الكتابة
     _showOpinionPinGate(slug, data);
 }
 
@@ -604,7 +624,6 @@ function _showOpinionPinGate(slug, data) {
         <button onclick="closeMaintenanceAuth()" class="w-full py-2.5 bg-white/30 hover:bg-white/50 border border-white/50 text-slate-500 font-bold rounded-xl transition text-sm">إلغاء</button>`;
     document.getElementById('maintenanceAuthModal').style.display = 'flex';
     setTimeout(() => document.querySelector('.opinion-pin-box')?.focus(), 100);
-    // احتفظ ببيانات الكاتب
     currentOpinionToken  = data.token;
     currentOpinionAuthor = { name: data.name, bio: data.bio };
     window._pendingOpinionPin = String(data.pin);
@@ -660,7 +679,6 @@ async function submitOpinionArticle() {
     });
     await saveGlobalArticlesToFirebase();
 
-    // علّم الرابط كمُرسَل في Firebase
     if (db && currentOpinionSlug) {
         try {
             await db.collection('appData').doc('opinionTokens').set(
@@ -874,7 +892,7 @@ function closeIframeModal(e) {
 }
 
 // ============================================================
-// صفحة التقرير التفصيلي — تقارير الفروع
+// صفحة التقرير التفصيلي
 // ============================================================
 function openBulletinPage(branchId, timestamp = null) {
     let data, scores, articleData, dateStr;
@@ -1045,7 +1063,7 @@ function buildPersonRow(name, role, border) {
 }
 
 // ============================================================
-// صفحة المقالات العامة (أسبوعي / إعلان / رأي / دراسة حالة) — تُعرض في Bulletin
+// صفحة المقالات العامة
 // ============================================================
 function openGlobalBulletinPage(ts) {
     const art = globalArticles.find(a => a.timestamp === ts);
@@ -1077,10 +1095,8 @@ function openGlobalBulletinPage(ts) {
         ? `<button onclick="deleteGlobalArticle(${ts})" class="btn-outline btn-outline-rose text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">${DEL_SVG}حذف المقال</button>`
         : '';
 
-    // معالجة النص لتحويل الكلمات إلى روابط
     const processedBody = processArticleLinks(bodyTxt);
 
-    // محتوى إضافي حسب النوع
     let extraContent = '';
     let commentsSection = '';
 
@@ -1132,7 +1148,6 @@ function openGlobalBulletinPage(ts) {
     requestAnimationFrame(() => cel.classList.add('slide-up'));
     window.scrollTo({ top:0, behavior:'smooth' });
 
-    // رسم التعليقات إذا كانت دراسة حالة
     if (art.type === 'caseStudy') {
         renderComments(ts);
     }
@@ -1145,7 +1160,6 @@ function generateNewspaper() {
     const tl = document.getElementById('newsTimeline');
     tl.innerHTML = '';
 
-    // جمع كل المقالات
     let all = [];
     for (let i = 1; i <= 6; i++) {
         const arts = branchArticles[i];
@@ -1175,7 +1189,6 @@ function generateNewspaper() {
         return;
     }
 
-    // تجميع حسب اليوم
     const grouped = {};
     all.forEach(r => { if (!grouped[r.dateStr]) grouped[r.dateStr] = []; grouped[r.dateStr].push(r); });
 
@@ -1198,7 +1211,6 @@ function generateNewspaper() {
                 : '';
 
             if (item.type === 'performance' && item.branchId) {
-                // ---- تقرير فرع — يحتفظ بصندوق النقاط ----
                 const tier  = getPerformanceTier(item.scores);
                 const lines = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
                 card.innerHTML = `
@@ -1218,7 +1230,6 @@ function generateNewspaper() {
                     </div>`;
 
             } else if (item.type === 'weekly') {
-                // ---- نظرة عن كثب — بدون تذييل ----
                 const lines   = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
                 const excerpt = (lines.slice(1).join(' ') || '').substring(0, 120);
                 card.innerHTML = `
@@ -1232,7 +1243,6 @@ function generateNewspaper() {
                     </div>`;
 
             } else if (item.type === 'announcement') {
-                // ---- إعلان — بدون تذييل ----
                 const lines   = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
                 const excerpt = (lines.slice(1).join(' ') || '').substring(0, 120);
                 card.innerHTML = `
@@ -1246,7 +1256,6 @@ function generateNewspaper() {
                     </div>`;
 
             } else if (item.type === 'caseStudy') {
-                // ---- دراسة حالة — مع آخر تعليق ----
                 const lines   = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
                 const rawExcerpt = (lines.slice(1).join(' ') || '').replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
                 const excerpt = rawExcerpt.substring(0, 100);
@@ -1270,7 +1279,6 @@ function generateNewspaper() {
                     </div>`;
 
             } else if (item.type === 'opinion') {
-                // ---- رأي — بدون تذييل، مع بيانات الكاتب فقط ----
                 const lines    = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
                 const bodyRaw  = lines.slice(1).join(' ') || '';
                 const excerpt  = bodyRaw.substring(0, 120);
@@ -1421,17 +1429,17 @@ function calculateTrial() {
 }
 
 // ============================================================
-// Auth — بوابة عامة (إيموجي+رقم) + صلاحيات مدير (PIN تاريخ)
+// Auth — بوابة عامة + صلاحيات مدير
 // ============================================================
-const SESSION_KEY       = 'ispecial_pub_session';   // جلسة الزائر العام
-const ADMIN_SESSION_KEY = 'ispecial_admin_session';  // جلسة المدير
+const SESSION_KEY       = 'ispecial_pub_session';
+const ADMIN_SESSION_KEY = 'ispecial_admin_session';
 const BLOCK_KEY_LOCAL   = 'ispecial_auth_blocked';
 const FAIL_KEY          = 'ispecial_auth_fails';
 
 const savePublicSession = () => localStorage.setItem(SESSION_KEY, 'granted');
 const checkPublicSession= () => localStorage.getItem(SESSION_KEY) === 'granted';
 const saveAdminSession  = () => localStorage.setItem(ADMIN_SESSION_KEY, 'forever');
-const checkSession      = () => localStorage.getItem(ADMIN_SESSION_KEY) === 'forever'; // admin
+const checkSession      = () => localStorage.getItem(ADMIN_SESSION_KEY) === 'forever';
 const isBlockedLocally  = () => localStorage.getItem(BLOCK_KEY_LOCAL) === '1';
 const getFailCount      = () => parseInt(localStorage.getItem(FAIL_KEY) || '0');
 const incFail           = () => localStorage.setItem(FAIL_KEY, getFailCount() + 1);
@@ -1441,13 +1449,17 @@ const CORRECT_EMOJI  = '🙏🏻';
 const CORRECT_NUMBER = '78';
 
 let _authEmojiChosen  = null;
-let _isPublicGate     = true;  // true = بوابة عامة، false = لوحة المدير
+let _isPublicGate     = true;
 
-// ---- التحقق من الحظر عبر Firebase ----
+// ✅ إصلاح #4: فحص الحظر المحلي فقط عند الدخول (لا Firebase)
+// Firebase يُفحص فقط عند محاولة الدخول الفاشلة أو بعد التحميل
 async function checkFirebaseBlock() {
     if (!db) return isBlockedLocally();
     try {
-        const doc = await db.collection('appData').doc('blockedIPs').get();
+        const doc = await Promise.race([
+            db.collection('appData').doc('blockedIPs').get(),
+            _fbTimeout(2000)  // timeout قصير جداً لهذا الفحص
+        ]);
         const sid = getCommentSessionId();
         if (doc.exists && doc.data()[sid]) return true;
     } catch(_) {}
@@ -1470,7 +1482,6 @@ async function unblockInFirebase(sid) {
     } catch(_) {}
 }
 
-// ---- فتح البوابة العامة ----
 function openPublicGate() {
     _isPublicGate = true;
     _authEmojiChosen = null;
@@ -1478,7 +1489,6 @@ function openPublicGate() {
     document.getElementById('maintenanceAuthModal').style.display = 'flex';
 }
 
-// ---- فتح لوحة المدير (عبر زر الهيدر) ----
 function openMaintenanceAuth() {
     if (checkSession()) {
         isAdminLoggedIn = true;
@@ -1492,7 +1502,6 @@ function openMaintenanceAuth() {
 }
 
 function _resetAuthModal(label) {
-    // إعادة بناء المحتوى للبوابة العامة
     const panel = document.querySelector('#maintenanceAuthModal .glass-panel');
     if (!panel) return;
     panel.innerHTML = `
@@ -1561,7 +1570,6 @@ function _verifyAdminPin() {
     }
 }
 
-// ---- بوابة الإيموجي+رقم ----
 function selectAuthEmoji(emoji) {
     _authEmojiChosen = emoji;
     document.getElementById('authEmojiStep').classList.add('hidden');
@@ -1579,14 +1587,18 @@ function authGoBack() {
     const w = document.getElementById('authWarning'); if (w) w.classList.add('hidden');
 }
 
+// ✅ إصلاح #5: فحص الحظر في الخلفية بعد الدخول، لا يعيق التحميل
 async function selectAuthNumber(num) {
     if (_authEmojiChosen === CORRECT_EMOJI && num === CORRECT_NUMBER) {
         clearFails();
         savePublicSession();
         closeMaintenanceAuth();
-        // أظهر المحتوى
         document.getElementById('loadingOverlay').style.display = 'none';
         generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
+        // فحص Firebase في الخلفية (لا يعيق UI)
+        checkFirebaseBlock().then(blocked => {
+            if (blocked) { _showBlockedScreen(); document.getElementById('maintenanceAuthModal').style.display = 'flex'; }
+        });
     } else {
         incFail();
         if (getFailCount() >= 2) {
@@ -1610,16 +1622,9 @@ function _showBlockedScreen() {
         </div>`;
 }
 
-async function showAuthBlocked() {
-    const blocked = await checkFirebaseBlock();
-    if (blocked) { _showBlockedScreen(); return true; }
-    return false;
-}
-
 function closeMaintenanceAuth() { document.getElementById('maintenanceAuthModal').style.display = 'none'; }
 function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
 
-// دوال احتياطية لتجنب أخطاء HTML القديم
 function handleBoxInput() {}
 function handleBoxKey()   {}
 function checkAdminPinLength() {}
@@ -1632,6 +1637,15 @@ async function deleteArticle(branchId, ts) {
     await saveArticlesToFirebase();
     generateNewspaper(); initCarousel();
     if (currentBulletinData?.branchId == branchId) goToMainPage();
+    showCopyToast('تم حذف المقال');
+}
+
+async function deleteGlobalArticle(ts) {
+    if (!confirm('هل تريد حذف هذا المقال نهائياً؟')) return;
+    globalArticles = globalArticles.filter(a => a.timestamp !== ts);
+    await saveGlobalArticlesToFirebase();
+    generateNewspaper();
+    if (currentBulletinData?.isGlobal && currentBulletinData?.globalTs === ts) goToMainPage();
     showCopyToast('تم حذف المقال');
 }
 
@@ -1656,22 +1670,12 @@ async function loadBlockedUsers() {
 
 async function unblockUser(sid) {
     await unblockInFirebase(sid);
-    // إذا كان هو نفس الجهاز الحالي
     if (sid === getCommentSessionId()) {
         localStorage.removeItem(BLOCK_KEY_LOCAL);
         clearFails();
     }
     showCopyToast('تم فك الحظر ✓');
     loadBlockedUsers();
-}
-
-
-    if (!confirm('هل تريد حذف هذا المقال نهائياً؟')) return;
-    globalArticles = globalArticles.filter(a => a.timestamp !== ts);
-    await saveGlobalArticlesToFirebase();
-    generateNewspaper();
-    if (currentBulletinData?.isGlobal && currentBulletinData?.globalTs === ts) goToMainPage();
-    showCopyToast('تم حذف المقال');
 }
 
 function loadAdminData() {
@@ -1742,10 +1746,9 @@ function openHistoryModal(branchId) {
 function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
 
 // ============================================================
-// تحويل الكلمات إلى روابط في نص المقال
+// تحويل الكلمات إلى روابط
 // ============================================================
 function processArticleLinks(text) {
-    // تحويل [كلمة](رابط) إلى روابط قابلة للنقر
     return text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener" class="article-inline-link">$1</a>');
 }
@@ -1753,7 +1756,7 @@ function processArticleLinks(text) {
 // ============================================================
 // نظام التعليقات على دراسات الحالة
 // ============================================================
-let caseStudyComments = {}; // { ts: [{id, authorId, authorName, authorTitle, text, sessionId, createdAt}] }
+let caseStudyComments = {};
 let currentCaseStudyTs = null;
 let commentSessionId = null;
 
@@ -1770,15 +1773,6 @@ function getCommentSessionId() {
 
 const saveCommentsToFirebase = () => _fbSave('caseComments', { data: caseStudyComments });
 
-async function loadCommentsFromFirebase() {
-    if (!db) return;
-    try {
-        const doc = await _loadDoc(db.collection('appData').doc('caseComments'));
-        if (doc.exists) caseStudyComments = doc.data().data || {};
-    } catch(_) {}
-}
-
-// بناء واجهة التعليق — الخطوة 1: اختيار الفرع
 function buildCommentStep1(ts) {
     const branches = Object.entries(branchesData).map(([id, d]) => {
         const people = [];
@@ -1803,7 +1797,6 @@ function buildCommentStep1(ts) {
     </div>`;
 }
 
-// الخطوة 2: اختيار الموظفة
 function selectCommentBranch(ts, branchId, people) {
     const el = document.getElementById('commentFlowContainer');
     if (!el) return;
@@ -1826,7 +1819,6 @@ function selectCommentBranch(ts, branchId, people) {
     </div>`;
 }
 
-// الخطوة 3: كتابة التعليق
 function selectCommentPerson(ts, personId, personName, personTitle) {
     const el = document.getElementById('commentFlowContainer');
     if (!el) return;
@@ -1882,7 +1874,6 @@ async function submitComment(ts, personId, personName, personTitle) {
     };
     caseStudyComments[ts].push(comment);
     await saveCommentsToFirebase();
-    // إعادة رسم التعليقات
     const el = document.getElementById('commentFlowContainer');
     if (el) el.innerHTML = buildCommentAddBtn(ts);
     renderComments(ts);
@@ -1933,16 +1924,12 @@ function buildCaseStudyCommentsSection(ts) {
     </div>`;
 }
 
-// ============================================================
-// إدارة روابط دراسة الحالة — رابط يُستخدم مرة واحدة
-// ============================================================
 async function generateCaseStudyLink() {
     const title = document.getElementById('caseStudyTitle')?.value.trim();
     const body  = document.getElementById('caseStudyBody')?.value.trim();
     if (!title || !body) { alert('يرجى إدخال العنوان والمحتوى'); return; }
     const ts = Date.now();
     const dateStr = new Date(ts).toISOString().split('T')[0];
-    // حفظ دراسة الحالة (مستخدمة = false حتى الآن)
     globalArticles.push({ type:'caseStudy', title, body, text:`${title}\n${body}`, timestamp:ts, dateStr });
     await saveGlobalArticlesToFirebase();
     closeArticleModal();
@@ -1950,71 +1937,77 @@ async function generateCaseStudyLink() {
     showCopyToast('تم نشر دراسة الحالة ✓');
 }
 
+// ============================================================
+// ✅ إصلاح رئيسي: DOMContentLoaded — منطق تحميل سريع ومحسَّن
+// ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const lo = document.getElementById('loadingOverlay');
 
-    // ---- تحقق من الحظر أولاً ----
+    // ---- فحص الحظر المحلي فقط (فوري، بدون Firebase) ----
     if (isBlockedLocally()) {
         _showBlockedScreen();
         document.getElementById('maintenanceAuthModal').style.display = 'flex';
         return;
     }
 
-    // ---- مستخدم جديد: أظهر البوابة العامة فوق شاشة الانتظار ----
-    if (!checkPublicSession()) {
-        openPublicGate();
-        // حمّل البيانات في الخلفية
-        await loadAllDataFromFirebase();
-        await loadCommentsFromFirebase();
-        if (checkSession()) isAdminLoggedIn = true;
-        getCommentSessionId();
-        return; // المحتوى سيُعرض عند نجاح المصادقة في selectAuthNumber
-    }
+    // تهيئة session ID مبكراً
+    getCommentSessionId();
+    if (checkSession()) isAdminLoggedIn = true;
 
-    // ---- مستخدم مسجّل: تحقق من الحظر عبر Firebase ----
-    const blocked = await checkFirebaseBlock();
-    if (blocked) {
-        _showBlockedScreen();
-        document.getElementById('maintenanceAuthModal').style.display = 'flex';
+    // ---- مستخدم جديد: أظهر بوابة الدخول فوراً ----
+    if (!checkPublicSession()) {
+        // حمّل البيانات في الخلفية بشكل متوازٍ أثناء انتظار المصادقة
+        Promise.all([loadAllDataFromFirebase(), loadCommentsFromFirebase()]).catch(()=>{});
+        openPublicGate();
         return;
     }
 
-    // ---- تحميل البيانات وعرض المحتوى ----
-    const loadStart = Date.now();
-    await loadAllDataFromFirebase();
-    await loadCommentsFromFirebase();
-    const elapsed   = Date.now() - loadStart;
-    const minWait   = 1000;
-    const remaining = Math.max(0, minWait - elapsed);
+    // ---- مستخدم مسجّل: تحقق من الحظر المحلي فوراً ثم حمّل ----
+    // ✅ إصلاح #6: إزالة minWait — نعرض المحتوى فور انتهاء التحميل
+    const hideOverlay = () => {
+        if (!lo) return;
+        lo.style.transition = 'opacity 0.4s ease';
+        lo.style.opacity = '0';
+        setTimeout(() => { lo.style.display = 'none'; }, 400);
+    };
 
-    if (checkSession()) isAdminLoggedIn = true;
-    getCommentSessionId();
+    // تحميل كل شيء بالتوازي
+    await Promise.all([
+        loadAllDataFromFirebase(),
+        loadCommentsFromFirebase()
+    ]);
 
-    // تلاشي شاشة الانتظار تدريجياً
-    setTimeout(() => {
-        if (lo) { lo.style.transition = 'background 0.8s ease, backdrop-filter 0.8s ease'; lo.style.background = 'transparent'; lo.style.backdropFilter = 'none'; }
-    }, remaining / 2);
-    setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining + 400);
+    // فحص الحظر في الخلفية بعد التحميل (لا يعيق العرض)
+    checkFirebaseBlock().then(blocked => {
+        if (blocked) {
+            _showBlockedScreen();
+            document.getElementById('maintenanceAuthModal').style.display = 'flex';
+        }
+    });
 
     const hash = location.hash;
     if (hash && hash.startsWith('#opinion-')) {
         const slug = hash.replace('#opinion-', '');
         generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
+        hideOverlay();
         openOpinionWritePage(slug); return;
     }
     if (hash && hash.startsWith('#bulletin-')) {
         const parts = hash.split('-'), bid = parseInt(parts[1]), ts = parts.length > 2 ? parseInt(parts[2]) : null;
         if (bid >= 1 && bid <= 6) {
             generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
-            setTimeout(() => openBulletinPage(bid, ts), 100); return;
+            hideOverlay();
+            setTimeout(() => openBulletinPage(bid, ts), 50); return;
         }
     }
     if (hash && hash.startsWith('#global-')) {
         const ts = parseInt(hash.replace('#global-', ''));
         if (!isNaN(ts)) {
             generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
-            setTimeout(() => openGlobalBulletinPage(ts), 100); return;
+            hideOverlay();
+            setTimeout(() => openGlobalBulletinPage(ts), 50); return;
         }
     }
     generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
+    hideOverlay();
 });
