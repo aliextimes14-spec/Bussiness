@@ -38,7 +38,7 @@
 
 <!-- Loading overlay -->
 <div id="loadingOverlay">
-    <div class="w-12 h-12 border-4 border-slate-300 border-t-slate-800 rounded-full animate-spin mb-4"></div>
+    <div id="loadingSpinner" class="w-12 h-12 border-4 border-slate-300 border-t-slate-800 rounded-full animate-spin mb-4"></div>
     <p class="text-slate-700 font-bold">I am Special...</p>
 </div>
 
@@ -143,18 +143,37 @@
     تم النسخ
 </div>
 
-<!-- PIN Auth Modal -->
-<div id="maintenanceAuthModal" class="fixed inset-0 bg-slate-900/45 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-    <div class="glass-panel rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center border border-white/50">
-        <h3 class="font-black text-xl mb-2 text-slate-900">الإدارة العليا</h3>
-        <p class="mb-6 font-medium text-slate-600 text-sm bg-white/30 inline-block px-3 py-1 rounded-full">أدخل كلمة المرور</p>
-        <div class="flex gap-4 justify-center mb-8" dir="ltr">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-slate-400" oninput="handleBoxInput(this,0)" onkeydown="handleBoxKey(event,0)">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-slate-400" oninput="handleBoxInput(this,1)" onkeydown="handleBoxKey(event,1)">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-slate-400" oninput="handleBoxInput(this,2)" onkeydown="handleBoxKey(event,2)">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box glass-input w-12 h-14 text-center text-2xl font-bold rounded-lg focus:ring-2 focus:ring-slate-400" oninput="handleBoxInput(this,3)" onkeydown="handleBoxKey(event,3)">
+<!-- Auth Modal — Emoji + Number -->
+<div id="maintenanceAuthModal" class="fixed inset-0 bg-slate-900/55 backdrop-blur-md z-[70] hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl p-7 shadow-2xl max-w-sm w-full text-center border border-white/50">
+        <h3 class="font-black text-xl mb-1 text-slate-900">الإدارة العليا</h3>
+        <p id="authStepLabel" class="mb-5 font-medium text-slate-500 text-sm">اختاري الإيموجي المناسب</p>
+        <div id="authWarning" class="hidden mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold px-4 py-2.5 rounded-xl">بقي لديكِ محاولة واحدة فقط ⚠️</div>
+        <!-- Step 1: emoji buttons -->
+        <div id="authEmojiStep" class="grid grid-cols-4 gap-3 mb-5">
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('👏🏻')">👏🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('🫱🏻‍🫲🏽')">🫱🏻‍🫲🏽</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('🫶🏻')">🫶🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('🙏🏻')">🙏🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('✍🏻')">✍🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('👍🏻')">👍🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('🤲🏻')">🤲🏻</button>
+            <button class="auth-emoji-btn text-3xl p-3 rounded-2xl glass-input hover:scale-110 transition-transform active:scale-95" onclick="selectAuthEmoji('💪🏻')">💪🏻</button>
         </div>
-        <button onclick="closeMaintenanceAuth()" class="w-full py-3 bg-white/50 hover:bg-white/70 border border-white/60 text-slate-800 font-bold rounded-lg transition shadow-sm">إلغاء</button>
+        <!-- Step 2: number buttons (hidden initially) -->
+        <div id="authNumberStep" class="hidden grid grid-cols-4 gap-3 mb-5">
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('12')">12</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('23')">23</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('34')">34</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('45')">45</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('56')">56</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('67')">67</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('78')">78</button>
+            <button class="auth-num-btn py-3 px-2 rounded-2xl glass-input font-black text-slate-800 text-base hover:scale-110 transition-transform active:scale-95" onclick="selectAuthNumber('98')">98</button>
+        </div>
+        <!-- Back btn (shown in step 2) -->
+        <button id="authBackBtn" class="hidden w-full mb-3 py-2.5 bg-white/40 hover:bg-white/60 border border-white/60 text-slate-600 font-bold rounded-xl transition text-sm" onclick="authGoBack()">← السابق</button>
+        <button onclick="closeMaintenanceAuth()" class="w-full py-2.5 bg-white/30 hover:bg-white/50 border border-white/50 text-slate-500 font-bold rounded-xl transition text-sm">إلغاء</button>
     </div>
 </div>
 

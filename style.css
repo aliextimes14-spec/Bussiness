@@ -137,9 +137,24 @@ body {
 }
 .carousel-dot:hover { opacity: 0.75; }
 
-/* ---- PIN boxes ---- */
-.pin-box { transition: transform 0.15s; }
-.pin-box:focus { transform: scale(1.05); }
+/* ---- Auth emoji/number buttons ---- */
+.auth-emoji-btn, .auth-num-btn {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+}
+.auth-emoji-btn:hover, .auth-num-btn:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+#authEmojiStep, #authNumberStep {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+#authNumberStep.hidden, #authEmojiStep.hidden { display: none; }
+
+/* ---- PIN boxes (legacy, kept to avoid errors) ---- */
+.pin-box { display: none; }
 
 /* ---- Hide number spinners ---- */
 input[type="number"]::-webkit-inner-spin-button,
@@ -168,11 +183,13 @@ input[type="number"] { -moz-appearance: textfield; }
     position: fixed; inset: 0;
     background: rgba(255,255,255,0.65);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 100;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    transition: background 0.8s ease, backdrop-filter 0.8s ease, -webkit-backdrop-filter 0.8s ease;
 }
 
 /* ---- Copy Toast ---- */
@@ -406,11 +423,9 @@ select.glass-input {
 .article-inline-link {
     color: #2563eb;
     font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-thickness: 1.5px;
-    transition: color 0.15s, opacity 0.15s;
+    text-decoration: none;
     cursor: pointer;
+    transition: color 0.15s, opacity 0.15s;
 }
 .article-inline-link:hover {
     color: #1d4ed8;

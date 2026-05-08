@@ -976,18 +976,6 @@ function openGlobalBulletinPage(ts) {
     const art = globalArticles.find(a => a.timestamp === ts);
     if (!art) return;
 
-    // التحقق من رابط دراسة الحالة — إذا كان مستخدماً سابقاً
-    if (art.type === 'caseStudy' && art.used && !isAdminLoggedIn) {
-        alert('رابط مستخدم بالفعل');
-        return;
-    }
-
-    // تمييل الرابط كمستخدم إذا كان دراسة حالة وليس مشاركاً من الإدارة
-    if (art.type === 'caseStudy' && !art.used) {
-        art.used = true;
-        saveGlobalArticlesToFirebase();
-    }
-
     currentCaseStudyTs = ts;
 
     const lines   = art.text ? art.text.split('\n').map(l => l.trim()).filter(l => l) : [];
@@ -1185,12 +1173,13 @@ function generateNewspaper() {
             } else if (item.type === 'caseStudy') {
                 // ---- دراسة حالة — مع آخر تعليق ----
                 const lines   = item.article ? item.article.split('\n').map(l => l.trim()).filter(l => l) : [];
-                const excerpt = (lines.slice(1).join(' ') || '').substring(0, 100);
+                const rawExcerpt = (lines.slice(1).join(' ') || '').replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+                const excerpt = rawExcerpt.substring(0, 100);
                 const comments = caseStudyComments[item.timestamp] || [];
                 const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
                 const lastCommentHTML = lastComment
                     ? `<div class="mt-3 pt-3 border-t border-white/40">
-                        <p class="text-[11px] font-black text-slate-500 mb-1.5">كتبت ${lastComment.authorTitle.replace('مديرة فرع','مديرة فرع').replace('نائبة مديرة فرع','نائبة مديرة فرع')}</p>
+                        <p class="text-[11px] font-black text-slate-500 mb-1">كتبت ${lastComment.authorName}</p>
                         <p class="text-slate-700 text-sm font-medium leading-relaxed opinion-byline-preview">${lastComment.text.substring(0, 80)}${lastComment.text.length > 80 ? '...' : ''}</p>
                        </div>`
                     : '';
@@ -1357,46 +1346,122 @@ function calculateTrial() {
 }
 
 // ============================================================
-// Admin
+// Auth — كلمة مرور إيموجي + رقم
 // ============================================================
-const SESSION_KEY   = 'ispecial_admin_session';
-const saveSession   = () => localStorage.setItem(SESSION_KEY, new Date().toISOString().split('T')[0]);
-const checkSession  = () => localStorage.getItem(SESSION_KEY) === new Date().toISOString().split('T')[0];
-const pinBoxes      = document.querySelectorAll('.pin-box');
+const SESSION_KEY  = 'ispecial_admin_session';
+const BLOCK_KEY    = 'ispecial_auth_blocked';
+const FAIL_KEY     = 'ispecial_auth_fails';
+const saveSession  = () => localStorage.setItem(SESSION_KEY, 'forever');
+const checkSession = () => localStorage.getItem(SESSION_KEY) === 'forever';
+const isBlocked    = () => localStorage.getItem(BLOCK_KEY) === '1';
+const getFailCount = () => parseInt(localStorage.getItem(FAIL_KEY) || '0');
+const incFail      = () => localStorage.setItem(FAIL_KEY, getFailCount() + 1);
+const clearFails   = () => localStorage.removeItem(FAIL_KEY);
 
-function handleBoxInput(el, idx) {
-    el.value = el.value.replace(/[^0-9]/g, '');
-    if (el.value !== '') { if (idx < 3) pinBoxes[idx + 1].focus(); checkAdminPinLength(); }
+const CORRECT_EMOJI  = '🙏🏻';
+const CORRECT_NUMBER = '78';
+
+let _authEmojiChosen = null;
+
+function selectAuthEmoji(emoji) {
+    if (isBlocked()) { showAuthBlocked(); return; }
+    _authEmojiChosen = emoji;
+    // انتقل للخطوة 2
+    document.getElementById('authEmojiStep').classList.add('hidden');
+    document.getElementById('authNumberStep').classList.remove('hidden');
+    document.getElementById('authBackBtn').classList.remove('hidden');
+    document.getElementById('authStepLabel').textContent = 'اختاري الرقم المناسب';
 }
-function handleBoxKey(e, idx) {
-    if (e.key === 'Backspace' && e.target.value === '' && idx > 0) { pinBoxes[idx - 1].focus(); pinBoxes[idx - 1].value = ''; }
+
+function authGoBack() {
+    _authEmojiChosen = null;
+    document.getElementById('authNumberStep').classList.add('hidden');
+    document.getElementById('authBackBtn').classList.add('hidden');
+    document.getElementById('authEmojiStep').classList.remove('hidden');
+    document.getElementById('authStepLabel').textContent = 'اختاري الإيموجي المناسب';
+    document.getElementById('authWarning').classList.add('hidden');
 }
-function checkAdminPinLength() {
-    const pin = Array.from(pinBoxes).map(b => b.value).join('');
-    if (pin.length === 4) verifyMaintenance(pin);
-}
-function verifyMaintenance(pin) {
-    const today = new Date();
-    const correct = today.getDate().toString().padStart(2, '0') + (today.getMonth() + 1).toString().padStart(2, '0');
-    if (pin === correct) {
-        isAdminLoggedIn = true; saveSession(); closeMaintenanceAuth();
+
+function selectAuthNumber(num) {
+    if (isBlocked()) { showAuthBlocked(); return; }
+    if (_authEmojiChosen === CORRECT_EMOJI && num === CORRECT_NUMBER) {
+        // ✅ صحيح
+        clearFails();
+        isAdminLoggedIn = true;
+        saveSession();
+        closeMaintenanceAuth();
         document.getElementById('adminModal').style.display = 'flex';
         loadAdminData(); generateNewspaper();
         if (currentBulletinData?.branchId) openBulletinPage(currentBulletinData.branchId, currentArticleTimestamp);
     } else {
-        alert("غير صحيح!");
-        pinBoxes.forEach(b => b.value = '');
-        pinBoxes[0].focus();
+        // ❌ خطأ
+        incFail();
+        const fails = getFailCount();
+        if (fails >= 2) {
+            localStorage.setItem(BLOCK_KEY, '1');
+            showAuthBlocked();
+        } else {
+            // تحذير: بقيت محاولة واحدة
+            document.getElementById('authWarning').classList.remove('hidden');
+            authGoBack();
+        }
     }
 }
-function openMaintenanceAuth() {
-    if (checkSession()) { isAdminLoggedIn = true; document.getElementById('adminModal').style.display = 'flex'; loadAdminData(); generateNewspaper(); return; }
-    document.getElementById('maintenanceAuthModal').style.display = 'flex';
-    pinBoxes.forEach(b => b.value = '');
-    setTimeout(() => pinBoxes[0].focus(), 100);
+
+function showAuthBlocked() {
+    document.getElementById('authEmojiStep').classList.add('hidden');
+    document.getElementById('authNumberStep').classList.add('hidden');
+    document.getElementById('authBackBtn').classList.add('hidden');
+    document.getElementById('authWarning').classList.add('hidden');
+    document.getElementById('authStepLabel').textContent = '';
+    const modal = document.querySelector('#maintenanceAuthModal .glass-panel');
+    if (modal) modal.innerHTML = `
+        <div class="text-center py-4">
+            <div class="text-5xl mb-4">🚫</div>
+            <h3 class="font-black text-xl mb-2 text-rose-700">تم حظر الدخول</h3>
+            <p class="text-slate-500 text-sm font-medium mb-6">تواصلي مع الإدارة العليا لإلغاء الحظر</p>
+            <button onclick="closeMaintenanceAuth()" class="w-full py-3 bg-white/50 border border-white/60 text-slate-700 font-bold rounded-xl transition">إغلاق</button>
+        </div>`;
 }
+
+// إلغاء الحظر — تستدعيها الإدارة العليا (تُستدعى من كونسول المتصفح أو يمكن إضافة زر خفي)
+function unblockAuth() {
+    localStorage.removeItem(BLOCK_KEY);
+    clearFails();
+    alert('تم إلغاء الحظر بنجاح');
+}
+
+function openMaintenanceAuth() {
+    if (isBlocked()) {
+        // أعد بناء المودال ليظهر شاشة الحظر مباشرة
+        document.getElementById('maintenanceAuthModal').style.display = 'flex';
+        showAuthBlocked();
+        return;
+    }
+    if (checkSession()) {
+        isAdminLoggedIn = true;
+        document.getElementById('adminModal').style.display = 'flex';
+        loadAdminData(); generateNewspaper();
+        return;
+    }
+    // إعادة المودال لوضعه الأصلي
+    _authEmojiChosen = null;
+    document.getElementById('authEmojiStep').classList.remove('hidden');
+    document.getElementById('authNumberStep').classList.add('hidden');
+    document.getElementById('authBackBtn').classList.add('hidden');
+    document.getElementById('authWarning').classList.add('hidden');
+    document.getElementById('authStepLabel').textContent = 'اختاري الإيموجي المناسب';
+    document.getElementById('maintenanceAuthModal').style.display = 'flex';
+}
+
 function closeMaintenanceAuth() { document.getElementById('maintenanceAuthModal').style.display = 'none'; }
 function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
+
+// دوال قديمة موجودة في HTML — نبقيها فارغة لتجنب أخطاء
+function handleBoxInput() {}
+function handleBoxKey()   {}
+function checkAdminPinLength() {}
+function verifyMaintenance()  {}
 
 async function deleteArticle(branchId, ts) {
     if (!confirm('هل تريد حذف هذا المقال نهائياً؟')) return;
@@ -1656,10 +1721,9 @@ function renderComments(ts) {
         </button>` : '';
         const spacing = i === 0 ? 'mt-8' : 'mt-5';
         return `<div class="comment-block ${spacing}">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-7 h-7 bg-white/60 rounded-full flex items-center justify-center font-black text-slate-700 text-xs border border-white/80 flex-shrink-0">${c.authorName.charAt(0)}</div>
-                <span class="text-slate-700 text-sm font-black">${c.authorName}</span>
-                <span class="text-slate-400 text-xs font-medium">— ${c.authorTitle}</span>
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-slate-800 text-sm font-black">${c.authorName}</span>
+                <span class="text-slate-400 text-xs font-medium">/ ${c.authorTitle}</span>
                 <span class="mr-auto">${delBtn}</span>
             </div>
             <p class="text-slate-700 leading-relaxed text-justify font-medium text-base comment-text">${c.text}</p>
@@ -1687,7 +1751,7 @@ async function generateCaseStudyLink() {
     const ts = Date.now();
     const dateStr = new Date(ts).toISOString().split('T')[0];
     // حفظ دراسة الحالة (مستخدمة = false حتى الآن)
-    globalArticles.push({ type:'caseStudy', title, body, text:`${title}\n${body}`, timestamp:ts, dateStr, used:false });
+    globalArticles.push({ type:'caseStudy', title, body, text:`${title}\n${body}`, timestamp:ts, dateStr });
     await saveGlobalArticlesToFirebase();
     closeArticleModal();
     generateNewspaper();
@@ -1695,24 +1759,43 @@ async function generateCaseStudyLink() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const lo = document.getElementById('loadingOverlay');
+    const alreadyLoggedIn = checkSession() && !isBlocked();
+
+    // مستخدم جديد: اعرض نافذة الدخول فوق شاشة الانتظار فوراً
+    if (!alreadyLoggedIn && !isBlocked()) {
+        openMaintenanceAuth();
+    }
+
+    const loadStart = Date.now();
     await loadAllDataFromFirebase();
     await loadCommentsFromFirebase();
-    const lo = document.getElementById('loadingOverlay');
-    if (lo) lo.style.display = 'none';
+    const elapsed  = Date.now() - loadStart;
+    const minWait  = 1200; // ½ ثانية الحد الأدنى للظهور
+    const remaining = Math.max(0, minWait - elapsed);
+
+    if (alreadyLoggedIn) {
+        // مستخدم مسجّل: أظهر الشاشة تتلاشى بعد نصف وقت الانتظار
+        setTimeout(() => {
+            if (lo) lo.style.transition = 'background 0.8s ease, backdrop-filter 0.8s ease';
+            if (lo) { lo.style.background = 'transparent'; lo.style.backdropFilter = 'none'; }
+        }, remaining / 2);
+        setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining + 400);
+    } else {
+        // مستخدم جديد: أخفِ الشاشة بعد اكتمال التحميل
+        setTimeout(() => { if (lo) lo.style.display = 'none'; }, remaining);
+    }
+
     if (checkSession()) isAdminLoggedIn = true;
-    getCommentSessionId(); // تهيئة معرف الجلسة
+    getCommentSessionId();
 
     const hash = location.hash;
-
-    // صفحة كتابة رأي
     if (hash && hash.startsWith('#opinion-')) {
         const slug = hash.replace('#opinion-', '');
         generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
         openOpinionWritePage(slug);
         return;
     }
-
-    // صفحة تقرير فرع
     if (hash && hash.startsWith('#bulletin-')) {
         const parts = hash.split('-'), bid = parseInt(parts[1]), ts = parts.length > 2 ? parseInt(parts[2]) : null;
         if (bid >= 1 && bid <= 6) {
@@ -1721,8 +1804,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
     }
-
-    // صفحة مقال عام (أسبوعي / إعلان / رأي / دراسة حالة)
     if (hash && hash.startsWith('#global-')) {
         const ts = parseInt(hash.replace('#global-', ''));
         if (!isNaN(ts)) {
@@ -1731,6 +1812,5 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
     }
-
     generateNewspaper(); initCarousel(); updateBrandReviewsPanel(); autoSaveDailySnapshot();
 });
